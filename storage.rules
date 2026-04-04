@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function canOperate() {
+      return signedIn() && (request.auth.token.role == 'admin' || request.auth.token.role == 'ops');
+    }
+
+    match /cartas_de_porte/{yearMonth}/{fileName} {
+      allow read: if canOperate();
+      allow write: if canOperate()
+        && request.resource != null
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 10 * 1024 * 1024
+        && yearMonth.matches('^\\d{4}-\\d{2}$')
+        && fileName.matches('^[a-zA-Z0-9._-]+\\.pdf$');
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

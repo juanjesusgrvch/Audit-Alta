@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.role == 'admin';
+    }
+
+    function canOperate() {
+      return signedIn() && (request.auth.token.role == 'admin' || request.auth.token.role == 'ops');
+    }
+
+    match /envase_tipos/{document=**} {
+      allow read: if canOperate();
+      allow write: if isAdmin();
+    }
+
+    match /envase_stock/{document=**} {
+      allow read: if canOperate();
+      allow write: if false;
+    }
+
+    match /envase_movimientos/{document=**} {
+      allow read: if canOperate();
+      allow write: if false;
+    }
+
+    match /operaciones/{document=**} {
+      allow read: if canOperate();
+      allow write: if false;
+    }
+
+    match /operaciones_keys/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /dashboard_resumen_diario/{document=**} {
+      allow read: if canOperate();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "envase_tipos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "activo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orden",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tipoOperacion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "envaseTipoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tipoOperacion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tipoOperacion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tipoOperacion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operaciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mesKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoOperacion",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
