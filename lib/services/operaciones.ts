@@ -2,7 +2,11 @@ import "server-only";
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { construirClavesFecha, normalizarTextoParaIndice } from "@/lib/utils";
+import {
+  compactarEspacios,
+  construirClavesFecha,
+  normalizarTextoParaIndice
+} from "@/lib/utils";
 import {
   COLLECTIONS,
   operacionCargaPersistenciaSchema,
@@ -37,14 +41,20 @@ async function crearOperacionCargaTransaccional(
   input: OperacionCargaPersistenciaInput
 ): Promise<ActionState<CrearOperacionCargaData>> {
   const db = getAdminDb();
+  const numeroCartaPorte = compactarEspacios(input.numeroCartaPorte);
+  const cliente = compactarEspacios(input.cliente);
+  const producto = compactarEspacios(input.producto);
+  const observaciones = input.observaciones
+    ? compactarEspacios(input.observaciones)
+    : null;
   const fechaKeys = construirClavesFecha(input.fechaOperacion);
   const timestampOperacion = Timestamp.fromDate(
     new Date(`${input.fechaOperacion}T00:00:00.000Z`)
   );
   const now = Timestamp.now();
-  const numeroCartaPorteNormalizado = normalizarTextoParaIndice(input.numeroCartaPorte);
-  const clienteNormalizado = normalizarTextoParaIndice(input.cliente);
-  const productoNormalizado = normalizarTextoParaIndice(input.producto);
+  const numeroCartaPorteNormalizado = normalizarTextoParaIndice(numeroCartaPorte);
+  const clienteNormalizado = normalizarTextoParaIndice(cliente);
+  const productoNormalizado = normalizarTextoParaIndice(producto);
 
   const operacionRef = db.collection(COLLECTIONS.operaciones).doc();
   const movimientoRef = db.collection(COLLECTIONS.envaseMovimientos).doc();
@@ -104,7 +114,7 @@ async function crearOperacionCargaTransaccional(
       transaction.create(uniqueKeyRef, {
         operacionId: operacionRef.id,
         tipoOperacion: "carga",
-        numeroCartaPorte: input.numeroCartaPorte,
+        numeroCartaPorte,
         numeroCartaPorteNormalizado,
         createdAt: now
       });
@@ -113,11 +123,11 @@ async function crearOperacionCargaTransaccional(
         tipoOperacion: "carga",
         fechaOperacion: timestampOperacion,
         ...fechaKeys,
-        numeroCartaPorte: input.numeroCartaPorte,
+        numeroCartaPorte,
         numeroCartaPorteNormalizado,
-        cliente: input.cliente,
+        cliente,
         clienteNormalizado,
-        producto: input.producto,
+        producto,
         productoNormalizado,
         kilos: input.kilos,
         cantidadEnvases: input.cantidadEnvases,
@@ -125,7 +135,7 @@ async function crearOperacionCargaTransaccional(
         envaseTipoCodigo: envaseTipo.codigo,
         envaseTipoNombre: envaseTipo.nombre,
         cartaPortePdf: input.cartaPortePdf,
-        observaciones: input.observaciones ?? null,
+        observaciones,
         createdAt: now,
         updatedAt: now
       });
@@ -144,12 +154,12 @@ async function crearOperacionCargaTransaccional(
           deltaEnvases: -input.cantidadEnvases,
           fechaOperacion: timestampOperacion,
           ...fechaKeys,
-          cliente: input.cliente,
+          cliente,
           clienteNormalizado,
-          producto: input.producto,
+          producto,
           productoNormalizado,
-          cartaPorteNumero: input.numeroCartaPorte,
-          observaciones: input.observaciones ?? null,
+          cartaPorteNumero: numeroCartaPorte,
+          observaciones,
           createdAt: now
         });
 

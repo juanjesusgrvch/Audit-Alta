@@ -1,0 +1,31 @@
+# Base App Hosting configuration for the Firebase project.
+# Automatic rollouts on git push still require a backend connected to this
+# repository and a live branch configured in the Firebase console.
+
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 40
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: lab-alta
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: lab-alta.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: FIREBASE_PROJECT_ID
+    value: lab-alta
+    availability:
+      - RUNTIME
+
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: lab-alta.firebasestorage.app
+    availability:
+      - RUNTIME

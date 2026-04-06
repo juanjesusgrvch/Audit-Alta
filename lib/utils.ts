@@ -46,10 +46,14 @@ export function construirClavesFecha(fechaOperacion: string) {
 }
 
 export function normalizarTextoParaIndice(value: string): string {
-  return value
+  return compactarEspacios(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
+    .toLowerCase();
+}
+
+export function compactarEspacios(value: string): string {
+  return value
     .trim()
     .replace(/\s+/g, " ");
 }

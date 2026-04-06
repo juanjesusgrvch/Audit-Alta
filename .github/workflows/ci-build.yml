@@ -1,0 +1,34 @@
+name: CI Build
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-fund --no-audit
+
+      - name: Build application
+        env:
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: lab-alta
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: lab-alta.firebasestorage.app
+          FIREBASE_PROJECT_ID: lab-alta
+          FIREBASE_STORAGE_BUCKET: lab-alta.firebasestorage.app
+        run: npm run build

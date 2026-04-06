@@ -2,11 +2,16 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { getAdminStorage, getFirebaseStorageBucketName } from "@/lib/firebase/admin";
-import { quitarExtensionArchivo, sanearSegmentoArchivo } from "@/lib/utils";
+import {
+  compactarEspacios,
+  quitarExtensionArchivo,
+  sanearSegmentoArchivo
+} from "@/lib/utils";
 import type { CartaPorteArchivo } from "@/types/schema";
 
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
 const PDF_CONTENT_TYPE = "application/pdf";
+const PDF_SIGNATURE = Buffer.from("%PDF-");
 
 type CartaPorteUploadParams = {
   file: File;
@@ -28,6 +33,22 @@ function validarCartaDePorte(file: File) {
   }
 }
 
+async function leerBufferCartaDePorte(file: File) {
+  validarCartaDePorte(file);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (buffer.length < PDF_SIGNATURE.length) {
+    throw new Error("El archivo PDF no es valido.");
+  }
+
+  if (!buffer.subarray(0, PDF_SIGNATURE.length).equals(PDF_SIGNATURE)) {
+    throw new Error("El archivo subido no contiene una firma PDF valida.");
+  }
+
+  return buffer;
+}
+
 function construirDownloadUrl(storagePath: string, token: string) {
   const bucketName = getFirebaseStorageBucketName();
   const encodedPath = encodeURIComponent(storagePath);
@@ -40,10 +61,10 @@ export async function subirCartaDePortePdf({
   numeroCartaPorte,
   fechaOperacion
 }: CartaPorteUploadParams): Promise<CartaPorteArchivo> {
-  validarCartaDePorte(file);
+  const numeroCartaPorteNormalizado = compactarEspacios(numeroCartaPorte);
 
   const yearMonth = fechaOperacion.slice(0, 7);
-  const cpSegment = sanearSegmentoArchivo(numeroCartaPorte, "cp");
+  const cpSegment = sanearSegmentoArchivo(numeroCartaPorteNormalizado, "cp");
   const originalName = sanearSegmentoArchivo(
     quitarExtensionArchivo(file.name || "carta-porte"),
     "carta-porte"
@@ -52,14 +73,14 @@ export async function subirCartaDePortePdf({
   const fileName = `${cpSegment}-${originalName}-${randomUUID()}.pdf`;
   const storagePath = `cartas_de_porte/${yearMonth}/${fileName}`;
   const bucket = getAdminStorage().bucket();
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = await leerBufferCartaDePorte(file);
 
   await bucket.file(storagePath).save(buffer, {
     contentType: PDF_CONTENT_TYPE,
     resumable: false,
     metadata: {
       metadata: {
-        cartaPorteNumero: numeroCartaPorte,
+        cartaPorteNumero: numeroCartaPorteNormalizado,
         fechaOperacion,
         firebaseStorageDownloadTokens: token
       }
