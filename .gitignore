@@ -5,3 +5,6 @@ node_modules
 .env.local
 .env.production
 firebase-debug.log
+.npm-cache
+.npm-cache-* 
+
