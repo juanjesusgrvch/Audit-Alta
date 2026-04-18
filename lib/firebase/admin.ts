@@ -12,20 +12,19 @@ import {
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { DEFAULT_PUBLIC_FIREBASE_CONFIG } from "@/lib/firebase/public-config";
 
 declare global {
   var __firebaseAdminApp__: App | undefined;
 }
 
+let warnedAboutApplicationDefault = false;
+
 function getFirebaseProjectId() {
   const projectId =
-    process.env.FIREBASE_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-
-  if (!projectId) {
-    throw new Error(
-      "Falta configurar FIREBASE_PROJECT_ID o NEXT_PUBLIC_FIREBASE_PROJECT_ID."
-    );
-  }
+    process.env.FIREBASE_PROJECT_ID ??
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
+    DEFAULT_PUBLIC_FIREBASE_CONFIG.projectId;
 
   return projectId;
 }
@@ -33,13 +32,8 @@ function getFirebaseProjectId() {
 export function getFirebaseStorageBucketName() {
   const storageBucket =
     process.env.FIREBASE_STORAGE_BUCKET ??
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-
-  if (!storageBucket) {
-    throw new Error(
-      "Falta configurar FIREBASE_STORAGE_BUCKET o NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET."
-    );
-  }
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
+    DEFAULT_PUBLIC_FIREBASE_CONFIG.storageBucket;
 
   return storageBucket;
 }
@@ -50,6 +44,10 @@ function hasServiceAccountEnv() {
       process.env.FIREBASE_CLIENT_EMAIL &&
       process.env.FIREBASE_PRIVATE_KEY
   );
+}
+
+function hasGoogleApplicationCredentialsEnv() {
+  return Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim());
 }
 
 export function getAdminApp(): App {
@@ -67,13 +65,22 @@ export function getAdminApp(): App {
     storageBucket: getFirebaseStorageBucketName()
   };
 
-  options.credential = hasServiceAccountEnv()
-    ? cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n")
-      })
-    : applicationDefault();
+  if (hasServiceAccountEnv()) {
+    options.credential = cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n")
+    });
+  } else {
+    if (!warnedAboutApplicationDefault && !hasGoogleApplicationCredentialsEnv()) {
+      console.warn(
+        "[firebase-admin] FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY no estan configuradas. Se usara applicationDefault()."
+      );
+      warnedAboutApplicationDefault = true;
+    }
+
+    options.credential = applicationDefault();
+  }
 
   global.__firebaseAdminApp__ = initializeApp(options);
 

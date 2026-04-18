@@ -8,3 +8,4 @@ firebase-debug.log
 .npm-cache
 .npm-cache-* 
 .tmp-*
+*firebase-adminsdk*.json

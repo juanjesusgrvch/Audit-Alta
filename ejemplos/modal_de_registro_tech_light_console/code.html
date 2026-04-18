@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aetheria Logistics | Registrar Descarga</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#E2E8F0",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#FFFFFF",
+                        "tertiary-fixed": "#065F46",
+                        "surface-tint": "#0284C7",
+                        "on-secondary-fixed-variant": "#475569",
+                        "secondary-fixed": "#F1F5F9",
+                        "primary-fixed-dim": "#7DD3FC",
+                        "surface-dim": "#F8FAFC",
+                        "on-primary-container": "#0369A1",
+                        "surface-container": "#F1F5F9",
+                        "secondary-fixed-dim": "#E2E8F0",
+                        "on-secondary-container": "#334155",
+                        "tertiary-container": "#10B981",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#0F172A",
+                        "secondary-container": "#F8FAFC",
+                        "surface-container-low": "#F8FAFC",
+                        "surface-container-highest": "#E2E8F0",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#F1F5F9",
+                        "tertiary": "#059669",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#0284C7",
+                        "background": "#F8FAFC",
+                        "on-surface": "#0F172A",
+                        "on-surface-variant": "#64748B",
+                        "primary": "#0284C7",
+                        "error": "#DC2626",
+                        "primary-fixed": "#E0F2FE",
+                        "on-secondary-fixed": "#0F172A",
+                        "primary-container": "#38BDF8",
+                        "inverse-surface": "#F1F5F9",
+                        "secondary": "#64748B",
+                        "outline": "#CBD5E1",
+                        "on-tertiary-container": "#064E3B",
+                        "on-tertiary-fixed-variant": "#064E3B",
+                        "surface": "#FFFFFF",
+                        "error-container": "#FEE2E2",
+                        "on-primary-fixed": "#082F49",
+                        "on-error-container": "#7F1D1D",
+                        "surface-variant": "#F1F5F9",
+                        "on-background": "#0F172A",
+                        "tertiary-fixed-dim": "#34D399",
+                        "on-tertiary-fixed": "#064E3B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(203, 213, 225, 0.5);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline { font-family: 'Space Grotesk', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen selection:bg-primary/20">
+<!-- Background Simulation (Blurred Main Content) -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-outline/30 flex flex-col pt-8 z-0 opacity-20 pointer-events-none">
+<div class="px-6 mb-8">
+<div class="w-40 h-8 bg-primary/20 rounded"></div>
+</div>
+</aside>
+<main class="ml-64 p-8 min-h-screen filter blur-xl opacity-20 pointer-events-none">
+<div class="h-20 bg-surface-container rounded-lg mb-8"></div>
+<div class="grid grid-cols-12 gap-8">
+<div class="col-span-8 space-y-8">
+<div class="h-64 bg-surface-container rounded-lg"></div>
+<div class="grid grid-cols-2 gap-8">
+<div class="h-40 bg-surface-container rounded-lg"></div>
+<div class="h-40 bg-surface-container rounded-lg"></div>
+</div>
+</div>
+<div class="col-span-4 h-[500px] bg-surface-container rounded-lg"></div>
+</div>
+</main>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-on-surface/5 backdrop-blur-sm">
+<!-- Modal Container -->
+<div class="glass-modal w-full max-w-4xl max-h-[95vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+<!-- Header -->
+<div class="px-10 py-8 border-b border-outline/20 flex justify-between items-start bg-white/40">
+<div>
+<h2 class="text-3xl font-headline font-bold tracking-tight text-on-surface uppercase mb-1">Registrar Descarga</h2>
+<p class="text-sm font-light text-on-surface-variant">Ingrese los detalles del nuevo ingreso de mercadería al sistema.</p>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-all p-2 hover:bg-surface-variant/50 rounded-full">close</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto px-10 py-8 space-y-12">
+<!-- Primary Form Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+<!-- Fecha -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">Fecha de Operación</label>
+<div class="relative group">
+<input class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none" type="date"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 pointer-events-none text-lg">calendar_today</span>
+</div>
+</div>
+<!-- KG Neto -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">KG Neto Recibido</label>
+<div class="relative group">
+<input class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm font-headline font-medium focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none" placeholder="0.00" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-on-surface-variant/60 pointer-events-none uppercase tracking-tighter">MT / KG</span>
+</div>
+</div>
+<!-- Proveedor/Campo -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">Proveedor / Origen</label>
+<input class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none" placeholder="Seleccione proveedor..." type="text"/>
+</div>
+<!-- Cliente -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">Cliente Destino</label>
+<input class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none" placeholder="Nombre del cliente..." type="text"/>
+</div>
+<!-- Código de Proceso -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">Código de Proceso Interno</label>
+<input class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm font-mono focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none" placeholder="PRO-0000" type="text"/>
+</div>
+<!-- Producto -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">Tipo de Producto</label>
+<div class="relative">
+<select class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none appearance-none cursor-pointer">
+<option>Semilla de Girasol</option>
+<option>Maíz Pisingallo</option>
+<option>Garbanzo</option>
+<option>Arveja Verde</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 pointer-events-none text-lg">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Analysis Toggle Section -->
+<div class="bg-surface-variant/20 rounded p-6 border border-outline/10">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<input checked="" class="w-4 h-4 rounded border-outline text-primary focus:ring-primary/20 transition-all cursor-pointer" id="analisis_check" type="checkbox"/>
+<label class="text-xs font-bold text-on-surface uppercase tracking-wider cursor-pointer select-none" for="analisis_check">Requiere Análisis de Laboratorio</label>
+</div>
+</div>
+<div class="max-w-xs space-y-2">
+<label class="text-[9px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/70 ml-0.5">Código de Análisis</label>
+<input class="w-full bg-white border border-outline/20 rounded px-4 py-2 text-xs font-mono focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none" placeholder="ANS-0000" type="text"/>
+</div>
+</div>
+<!-- Envases Table Section -->
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="text-xs font-bold uppercase tracking-[0.2em] text-primary">Detalle de Envases y Paletizado</h3>
+<div class="flex gap-2">
+<button class="flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border border-outline/30 rounded hover:bg-surface-variant/50 transition-all">
+<span class="material-symbols-outlined text-[16px]">remove_circle</span> Agregar Baja
+                        </button>
+<button class="flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-widest bg-primary text-white rounded hover:shadow-lg hover:shadow-primary/20 transition-all">
+<span class="material-symbols-outlined text-[16px]">add_box</span> Agregar Ingreso
+                        </button>
+</div>
+</div>
+<div class="overflow-hidden rounded border border-outline/20 bg-white">
+<table class="w-full text-left text-xs">
+<thead class="bg-surface-variant/30 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant border-b border-outline/20">
+<tr>
+<th class="py-4 px-6">Movimiento</th>
+<th class="py-4 px-6">Tipo de Envase</th>
+<th class="py-4 px-6">Estado</th>
+<th class="py-4 px-6">Cantidad</th>
+<th class="py-4 px-6 text-right">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline/10">
+<tr class="hover:bg-surface-variant/20 transition-colors">
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-tertiary/10 text-tertiary border border-tertiary/20">
+<span class="material-symbols-outlined text-[12px]">arrow_downward</span> Ingreso
+                                    </span>
+</td>
+<td class="py-4 px-6 font-medium text-on-surface">Bolsón 1000 kg</td>
+<td class="py-4 px-6 text-on-surface-variant">Usado</td>
+<td class="py-4 px-6 font-headline font-bold text-on-surface">24</td>
+<td class="py-4 px-6 text-right">
+<button class="material-symbols-outlined text-on-surface-variant/40 hover:text-error transition-colors text-lg">delete</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-variant/20 transition-colors">
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-primary/10 text-primary border border-primary/20">
+<span class="material-symbols-outlined text-[12px]">arrow_upward</span> Baja
+                                    </span>
+</td>
+<td class="py-4 px-6 font-medium text-on-surface">Pallet Madera Standard</td>
+<td class="py-4 px-6 text-on-surface-variant">Nuevo</td>
+<td class="py-4 px-6 font-headline font-bold text-on-surface">12</td>
+<td class="py-4 px-6 text-right">
+<button class="material-symbols-outlined text-on-surface-variant/40 hover:text-error transition-colors text-lg">delete</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Observations -->
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant ml-0.5">Observaciones Adicionales</label>
+<textarea class="w-full bg-surface-variant/30 border border-outline/20 rounded px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary focus:bg-white transition-all outline-none resize-none min-h-[100px]" placeholder="Notas sobre la calidad, transportista o anomalías detectadas durante la descarga..."></textarea>
+</div>
+</div>
+<!-- Footer -->
+<div class="px-10 py-6 border-t border-outline/20 bg-white/40 flex justify-end gap-3 items-center">
+<button class="px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-on-surface transition-colors">
+                Descartar
+            </button>
+<button class="px-10 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white bg-primary rounded shadow-md hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                Confirmar Registro
+            </button>
+</div>
+</div>
+</div>
+</body></html>

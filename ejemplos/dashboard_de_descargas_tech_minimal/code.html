@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard de Descargas | Alta S.A.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-container": "#004e34",
+                      "surface-container-low": "#131b2e",
+                      "inverse-on-surface": "#283044",
+                      "on-background": "#dae2fd",
+                      "surface": "#0b1326",
+                      "surface-container": "#171f33",
+                      "secondary-fixed-dim": "#b9c8de",
+                      "secondary-fixed": "#d4e4fa",
+                      "outline-variant": "#3e484f",
+                      "on-tertiary": "#003824",
+                      "background": "#0b1326",
+                      "on-tertiary-fixed": "#002113",
+                      "inverse-surface": "#dae2fd",
+                      "surface-container-high": "#222a3d",
+                      "error-container": "#93000a",
+                      "on-primary": "#00354a",
+                      "on-error": "#690005",
+                      "primary": "#8ed5ff",
+                      "outline": "#87929a",
+                      "on-secondary-fixed": "#0d1c2d",
+                      "on-secondary-container": "#a7b6cc",
+                      "on-secondary": "#233143",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "primary-fixed-dim": "#7bd0ff",
+                      "tertiary-container": "#30c88f",
+                      "primary-container": "#38bdf8",
+                      "on-error-container": "#ffdad6",
+                      "primary-fixed": "#c4e7ff",
+                      "inverse-primary": "#00668a",
+                      "surface-bright": "#31394d",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed": "#6ffbbe",
+                      "secondary-container": "#39485a",
+                      "on-surface-variant": "#bdc8d1",
+                      "tertiary": "#56e5a9",
+                      "surface-variant": "#2d3449",
+                      "secondary": "#b9c8de",
+                      "on-primary-fixed-variant": "#004c69",
+                      "surface-container-lowest": "#060e20",
+                      "on-secondary-fixed-variant": "#39485a",
+                      "on-surface": "#dae2fd",
+                      "on-primary-container": "#004965",
+                      "on-primary-fixed": "#001e2c",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-dim": "#0b1326",
+                      "surface-tint": "#7bd0ff",
+                      "surface-container-highest": "#2d3449"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "fontFamily": {
+                      "headline": ["Space Grotesk"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(19, 27, 46, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(135, 146, 154, 0.1);
+        }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(142, 213, 255, 0.2);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(142, 213, 255, 0.4);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-pulse {
+            box-shadow: 0 0 0 0 rgba(86, 229, 169, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(86, 229, 169, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(86, 229, 169, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(86, 229, 169, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary-fixed">
+<div class="flex min-h-screen">
+<!-- SideNavBar Component -->
+<aside class="hidden md:flex flex-col h-screen w-64 left-0 sticky bg-slate-900/40 backdrop-blur-lg shadow-2xl space-y-4 py-6 border-r border-white/5">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-gradient-to-br from-primary to-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-sm">terminal</span>
+</div>
+<div>
+<h2 class="font-headline font-bold text-sm tracking-widest text-on-surface uppercase">Plant Ops</h2>
+<p class="text-[10px] text-on-surface-variant tracking-wider uppercase">Terminal A-04</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-white/5 transition-all group cursor-pointer active:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="outbox">outbox</span>
+<span class="font-['Inter'] font-medium text-xs">Egresos</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 bg-sky-400/10 text-sky-300 border-r-2 border-sky-400 transition-all group cursor-pointer active:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="downloading">downloading</span>
+<span class="font-['Inter'] font-medium text-xs">Descargas</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-white/5 transition-all group cursor-pointer active:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="report_problem">report_problem</span>
+<span class="font-['Inter'] font-medium text-xs">Defectos</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-white/5 transition-all group cursor-pointer active:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-['Inter'] font-medium text-xs">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-slate-500 hover:bg-white/5 transition-all group cursor-pointer active:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+<span class="font-['Inter'] font-medium text-xs">Settings</span>
+</a>
+</nav>
+<div class="mt-auto px-6 pt-6 border-t border-white/5">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-primary/20">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="portrait of a professional male engineer in high-tech setting, soft cinematic lighting, blue color grading" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3Fnh2JL-o5r_WpOUmyhNhtuxdXRjBn7S2TN47eIoNniTicbLu4Xhr9oISzM6oGa00tse51OnnnHI0tt0LC0NioAQv5-RXl4PwlvuLQmMJKfXzsYAHtZVoy-PRwsYodjSM4_lccVs6o0JeAmvJ8kLMBlUH1Be-bmsey0tQK9ZB0ppu5s2cbfYFa2SDsK2vyBTVaPj9hMj_7vSlhKFIWSxclq3bNvL9q7iYSNftvzmjcX9q2mE--rg6axDnAQTHkfQZkbp4c5ni3vI"/>
+</div>
+<div class="flex-1">
+<p class="text-xs font-semibold text-on-surface">Alex Rivera</p>
+<p class="text-[10px] text-on-surface-variant">Chief of Ops</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 min-w-0 bg-background overflow-y-auto">
+<!-- TopNavBar Component -->
+<header class="w-full top-0 sticky bg-slate-950/60 backdrop-blur-xl border-b border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] flex justify-between items-center px-8 h-16 z-50">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-sky-300 font-headline uppercase">ATL-CONSOLE</span>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-slate-400 font-['Space_Grotesk'] tracking-wider uppercase text-sm hover:text-sky-200 transition-colors duration-300 active:scale-95" href="#">Dashboard</a>
+<a class="text-sky-300 border-b-2 border-sky-300 pb-1 font-['Space_Grotesk'] tracking-wider uppercase text-sm hover:text-sky-200 transition-colors duration-300 active:scale-95" href="#">Descargas</a>
+<a class="text-slate-400 font-['Space_Grotesk'] tracking-wider uppercase text-sm hover:text-sky-200 transition-colors duration-300 active:scale-95" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-lowest border border-white/5">
+<div class="w-2 h-2 rounded-full bg-tertiary status-pulse"></div>
+<span class="text-[10px] font-headline uppercase tracking-widest text-tertiary">Conectado</span>
+</div>
+<div class="h-6 w-px bg-white/10 mx-2"></div>
+<button class="text-slate-400 hover:text-sky-200 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="text-slate-400 hover:text-sky-200 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="notifications">notifications</span>
+</button>
+<button class="text-slate-400 hover:text-sky-200 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<div class="p-8 space-y-8 max-w-7xl mx-auto">
+<!-- KPI Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="glass-panel p-5 rounded-lg flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-4xl" data-icon="receipt_long">receipt_long</span>
+</div>
+<p class="text-xs font-headline uppercase tracking-widest text-on-surface-variant">Registro de descargas</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-headline font-bold text-primary">1,284</h3>
+<span class="text-[10px] text-tertiary font-medium">+12% vs ayer</span>
+</div>
+</div>
+<div class="glass-panel p-5 rounded-lg flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-4xl" data-icon="factory">factory</span>
+</div>
+<p class="text-xs font-headline uppercase tracking-widest text-on-surface-variant">Stock en planta</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-headline font-bold text-primary">84.2%</h3>
+<div class="w-16 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="w-[84%] h-full bg-primary"></div>
+</div>
+</div>
+</div>
+<div class="glass-panel p-5 rounded-lg flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-4xl" data-icon="biotech">biotech</span>
+</div>
+<p class="text-xs font-headline uppercase tracking-widest text-on-surface-variant">Análisis realizados</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-headline font-bold text-primary">412</h3>
+<span class="text-[10px] text-on-surface-variant font-medium">99.2% OK</span>
+</div>
+</div>
+<button class="bg-gradient-to-br from-primary to-primary-container p-5 rounded-lg flex flex-col justify-center items-center h-32 glow-button transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-on-primary text-3xl mb-2" data-icon="add_circle">add_circle</span>
+<span class="text-sm font-headline font-bold uppercase tracking-widest text-on-primary">Nuevo ingreso</span>
+</button>
+</div>
+<!-- Charts & Metrics Asymmetric Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Scatter Plot / Line Chart -->
+<div class="lg:col-span-8 glass-panel p-6 rounded-lg border-b-2 border-primary/20">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h4 class="font-headline text-sm font-bold uppercase tracking-wider">Descargas por fecha</h4>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tight">Frecuencia de ingresos en tiempo real</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1 text-[10px] border border-primary/20 rounded-full text-primary font-bold uppercase">Live</button>
+<button class="px-3 py-1 text-[10px] text-on-surface-variant uppercase">Histórico</button>
+</div>
+</div>
+<div class="h-48 flex items-end justify-between relative gap-1">
+<!-- Visual placeholder for a high-tech instrument chart -->
+<div class="absolute inset-0 flex flex-col justify-between opacity-10 pointer-events-none">
+<div class="border-t border-outline-variant w-full h-px"></div>
+<div class="border-t border-outline-variant w-full h-px"></div>
+<div class="border-t border-outline-variant w-full h-px"></div>
+</div>
+<!-- Mock Data Points -->
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 40%"></div>
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-background absolute glow-button transition-all" style="bottom: 40%"></div>
+</div>
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 65%"></div>
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-background absolute glow-button transition-all" style="bottom: 65%"></div>
+</div>
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 30%"></div>
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-background absolute glow-button transition-all" style="bottom: 30%"></div>
+</div>
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 85%"></div>
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-background absolute glow-button transition-all" style="bottom: 85%"></div>
+</div>
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 55%"></div>
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-background absolute glow-button transition-all" style="bottom: 55%"></div>
+</div>
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 95%"></div>
+<div class="w-3 h-3 rounded-full bg-tertiary border-2 border-background absolute glow-button transition-all" style="bottom: 95%"></div>
+</div>
+<div class="flex-1 flex flex-col items-center group relative h-full">
+<div class="w-1.5 bg-primary/20 absolute bottom-0 rounded-t-sm" style="height: 45%"></div>
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-background absolute glow-button transition-all" style="bottom: 45%"></div>
+</div>
+</div>
+<div class="mt-4 flex justify-between px-2">
+<span class="text-[9px] text-on-surface-variant font-bold">06:00</span>
+<span class="text-[9px] text-on-surface-variant font-bold">10:00</span>
+<span class="text-[9px] text-on-surface-variant font-bold">14:00</span>
+<span class="text-[9px] text-on-surface-variant font-bold">18:00</span>
+<span class="text-[9px] text-on-surface-variant font-bold">22:00</span>
+</div>
+</div>
+<!-- Horizontal Bar Chart -->
+<div class="lg:col-span-4 glass-panel p-6 rounded-lg">
+<h4 class="font-headline text-sm font-bold uppercase tracking-wider mb-6">Ingreso neto por producto</h4>
+<div class="space-y-5">
+<div>
+<div class="flex justify-between text-[10px] mb-1 uppercase font-medium">
+<span>Harina de Trigo</span>
+<span class="text-primary">420.5 Ton</span>
+</div>
+<div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 85%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] mb-1 uppercase font-medium">
+<span>Aceite Refinado</span>
+<span class="text-primary">128.2 Ton</span>
+</div>
+<div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] mb-1 uppercase font-medium">
+<span>Gluten de Maíz</span>
+<span class="text-primary">94.0 Ton</span>
+</div>
+<div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 32%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] mb-1 uppercase font-medium">
+<span>Suero en Polvo</span>
+<span class="text-primary">62.8 Ton</span>
+</div>
+<div class="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 22%"></div>
+</div>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-white/5 flex justify-center">
+<button class="text-[10px] font-headline font-bold uppercase tracking-widest text-primary hover:text-white transition-colors">Ver reporte completo</button>
+</div>
+</div>
+</div>
+<!-- Search & Filters -->
+<div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+<div class="relative w-full md:w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" data-icon="search">search</span>
+<input class="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-primary focus:ring-0 text-sm py-2.5 pl-10 placeholder:text-on-surface-variant transition-all" placeholder="Buscar por remito, chofer o producto..." type="text"/>
+</div>
+<div class="flex gap-2 w-full md:w-auto">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container border border-outline-variant/30 text-xs font-medium hover:bg-surface-bright transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+                            Filtrar
+                        </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container border border-outline-variant/30 text-xs font-medium hover:bg-surface-bright transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="calendar_month">calendar_month</span>
+                            Últimos 7 días
+                        </button>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant/30 text-xs font-medium hover:bg-surface-bright transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+</button>
+</div>
+</div>
+<!-- Downloads List -->
+<div class="space-y-3">
+<!-- Header -->
+<div class="grid grid-cols-12 px-6 py-2 text-[10px] font-headline uppercase tracking-widest text-on-surface-variant">
+<div class="col-span-2">ID / Remito</div>
+<div class="col-span-3">Producto</div>
+<div class="col-span-2">Chofer</div>
+<div class="col-span-2 text-center">Peso Neto</div>
+<div class="col-span-2 text-center">Estado</div>
+<div class="col-span-1 text-right">Acción</div>
+</div>
+<!-- List Items -->
+<div class="glass-panel group hover:bg-surface-bright transition-all rounded-sm overflow-hidden">
+<div class="grid grid-cols-12 px-6 py-4 items-center">
+<div class="col-span-2">
+<p class="text-xs font-bold text-on-surface">#RT-84221</p>
+<p class="text-[10px] text-on-surface-variant">14:24 · 22 May</p>
+</div>
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="grain">grain</span>
+</div>
+<span class="text-xs font-medium">Harina de Trigo 000</span>
+</div>
+<div class="col-span-2">
+<p class="text-xs">Roberto Gómez</p>
+<p class="text-[10px] text-on-surface-variant uppercase">AA 772 XX</p>
+</div>
+<div class="col-span-2 text-center font-headline font-bold text-primary">28,420 Kg</div>
+<div class="col-span-2 flex justify-center">
+<span class="px-2 py-1 rounded-sm bg-tertiary-container/10 text-tertiary text-[9px] font-bold uppercase border border-tertiary/20">Aprobado</span>
+</div>
+<div class="col-span-1 flex justify-end gap-1">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="visibility">visibility</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+</div>
+<div class="glass-panel group hover:bg-surface-bright transition-all rounded-sm overflow-hidden">
+<div class="grid grid-cols-12 px-6 py-4 items-center">
+<div class="col-span-2">
+<p class="text-xs font-bold text-on-surface">#RT-84222</p>
+<p class="text-[10px] text-on-surface-variant">15:10 · 22 May</p>
+</div>
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="opacity">opacity</span>
+</div>
+<span class="text-xs font-medium">Aceite de Girasol</span>
+</div>
+<div class="col-span-2">
+<p class="text-xs">Marta Sanchez</p>
+<p class="text-[10px] text-on-surface-variant uppercase">LT 221 BB</p>
+</div>
+<div class="col-span-2 text-center font-headline font-bold text-primary">12,100 Kg</div>
+<div class="col-span-2 flex justify-center">
+<span class="px-2 py-1 rounded-sm bg-primary/10 text-primary text-[9px] font-bold uppercase border border-primary/20">En Análisis</span>
+</div>
+<div class="col-span-1 flex justify-end gap-1">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="visibility">visibility</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+</div>
+<div class="glass-panel group hover:bg-surface-bright transition-all rounded-sm overflow-hidden">
+<div class="grid grid-cols-12 px-6 py-4 items-center">
+<div class="col-span-2">
+<p class="text-xs font-bold text-on-surface">#RT-84218</p>
+<p class="text-[10px] text-on-surface-variant">12:30 · 22 May</p>
+</div>
+<div class="col-span-3 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="category">category</span>
+</div>
+<span class="text-xs font-medium">Suero en Polvo Des.</span>
+</div>
+<div class="col-span-2">
+<p class="text-xs">Jorge Luján</p>
+<p class="text-[10px] text-on-surface-variant uppercase">PK 119 MN</p>
+</div>
+<div class="col-span-2 text-center font-headline font-bold text-primary">8,400 Kg</div>
+<div class="col-span-2 flex justify-center">
+<span class="px-2 py-1 rounded-sm bg-error/10 text-error text-[9px] font-bold uppercase border border-error/20">Rechazado</span>
+</div>
+<div class="col-span-1 flex justify-end gap-1">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="visibility">visibility</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,4 +1,7 @@
-import type { DashboardResumenDiario } from "@/types/schema";
+import type {
+  DashboardResumenDiario,
+  PackagingMovement
+} from "@/types/schema";
 
 type TimestampLike =
   | Date
@@ -28,9 +31,24 @@ export function esFechaIsoLocal(value: string): boolean {
     return false;
   }
 
-  const parsedDate = new Date(`${value}T00:00:00.000Z`);
+  const [year, month, day] = value.split("-").map(Number);
+  const parsedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
 
-  return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().startsWith(value);
+  return (
+    !Number.isNaN(parsedDate.getTime()) &&
+    parsedDate.getFullYear() === year &&
+    parsedDate.getMonth() === month - 1 &&
+    parsedDate.getDate() === day
+  );
+}
+
+export function fechaIsoLocalToDate(value: string): Date {
+  if (!esFechaIsoLocal(value)) {
+    throw new Error("La fecha de operacion no tiene un formato valido.");
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
 export function construirClavesFecha(fechaOperacion: string) {
@@ -58,6 +76,24 @@ export function compactarEspacios(value: string): string {
     .replace(/\s+/g, " ");
 }
 
+export function normalizarTextoOperativo(value: string): string {
+  return compactarEspacios(value).toUpperCase();
+}
+
+export function crearIdDescargaLegacy(nowMs = Date.now()): string {
+  return `ING-${nowMs}`;
+}
+
+export function completarIdsPackagingMovements(
+  entryId: string,
+  packagingMovements: PackagingMovement[]
+): PackagingMovement[] {
+  return packagingMovements.map((movement, index) => ({
+    ...movement,
+    id: movement.id?.trim() || `PKG-${entryId}-${index + 1}`
+  }));
+}
+
 export function sanearSegmentoArchivo(value: string, fallback = "archivo"): string {
   const sanitized = value
     .normalize("NFD")
@@ -69,6 +105,37 @@ export function sanearSegmentoArchivo(value: string, fallback = "archivo"): stri
     .replace(/^-|-$/g, "");
 
   return sanitized || fallback;
+}
+
+function normalizarKilosParaId(value: number | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return "0";
+  }
+
+  return value.toFixed(3).replace(/\.?0+$/, "").replace(".", "-");
+}
+
+export function construirEnvaseInventoryId(
+  envaseTipoId: string,
+  envaseEstado: string,
+  kilos?: number
+): string {
+  return [
+    sanearSegmentoArchivo(envaseTipoId, "envase"),
+    sanearSegmentoArchivo(normalizarTextoParaIndice(envaseEstado), "estado"),
+    sanearSegmentoArchivo(normalizarKilosParaId(kilos), "0")
+  ].join("__");
+}
+
+export function construirEnvaseTipoIdManual(value: string): string {
+  return `manual-${sanearSegmentoArchivo(normalizarTextoParaIndice(value), "envase")}`;
+}
+
+export function construirEnvaseTipoCodigoManual(value: string): string {
+  return sanearSegmentoArchivo(value, "ENVASE")
+    .replace(/-/g, "_")
+    .toUpperCase()
+    .slice(0, 32);
 }
 
 export function quitarExtensionArchivo(fileName: string): string {
@@ -85,6 +152,10 @@ export function timestampLikeToDate(value: TimestampLike): Date | null {
   }
 
   if (typeof value === "string") {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return fechaIsoLocalToDate(value);
+    }
+
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }

@@ -6,32 +6,60 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return signedIn() && request.auth.token.role == 'admin';
+    function authorizedOperator() {
+      return signedIn() && (
+        request.auth.uid == "YmFkf4hqIaQsBWm1waccoIdxB7K2" ||
+        request.auth.uid == "RTgzHx5HHiNYVlPxVGIxkXMYsK83" ||
+      );
     }
 
-    function canOperate() {
-      return signedIn() && (request.auth.token.role == 'admin' || request.auth.token.role == 'ops');
+    function sameUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /descargas/{document=**} {
+      allow read, write: if authorizedOperator();
+    }
+
+    match /cargas/{document=**} {
+      allow read, write: if authorizedOperator();
+    }
+
+    match /envases/{document=**} {
+      allow read, write: if authorizedOperator();
+    }
+
+    match /procesos/{document=**} {
+      allow read, write: if authorizedOperator();
+    }
+
+    match /defectos/{document=**} {
+      allow read, write: if authorizedOperator();
+    }
+
+    match /muestras/{document=**} {
+      allow read, write: if authorizedOperator();
+    }
+
+    match /usuarios/{userId} {
+      allow read, create, update: if authorizedOperator() && sameUser(userId);
+      allow delete: if false;
     }
 
     match /envase_tipos/{document=**} {
-      allow read: if canOperate();
-      allow write: if isAdmin();
+      allow read, write: if authorizedOperator();
     }
 
     match /envase_stock/{document=**} {
-      allow read: if canOperate();
-      allow write: if false;
+      allow read, write: if authorizedOperator();
     }
 
     match /envase_movimientos/{document=**} {
-      allow read: if canOperate();
-      allow write: if false;
+      allow read, write: if authorizedOperator();
     }
 
     match /operaciones/{document=**} {
-      allow read: if canOperate();
-      allow write: if false;
+      allow read, write: if authorizedOperator();
     }
 
     match /operaciones_keys/{document=**} {
@@ -39,8 +67,7 @@ service cloud.firestore {
     }
 
     match /dashboard_resumen_diario/{document=**} {
-      allow read: if canOperate();
-      allow write: if false;
+      allow read, write: if authorizedOperator();
     }
 
     match /{document=**} {

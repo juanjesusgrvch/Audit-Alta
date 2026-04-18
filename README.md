@@ -1,56 +1,69 @@
 # Audit Alta
 
-Aplicacion `Next.js 15` para registrar operaciones de carga y administrar stock de envases con Firebase.
+Aplicacion `Next.js 15` para gestionar descargas, cargas y envases con Firebase.
 
 ## Estado actual
 
-- El proyecto compila correctamente con `npm run build`.
-- El repo esta preparado para `Firebase App Hosting` con [`apphosting.yaml`](./apphosting.yaml) y [`.firebaserc`](./.firebaserc).
-- GitHub ahora valida cada push con el workflow [`.github/workflows/ci-build.yml`](./.github/workflows/ci-build.yml).
+- Base modular con rutas principales:
+  - `/descargas`: ingresos de mercaderia.
+  - `/cargas`: egresos, cargas y despachos.
+  - `/envases`: catalogo y stock operativo de envases.
+- Escrituras server-side hacia Firestore con validacion Zod, subida de PDF a Storage y rollback del archivo si falla la transaccion.
+- Referencias visuales activas en `ejemplos/`, aplicadas como consola tecnica dark/light al estilo Aetheria Logistics.
+- Las rutas heredadas `/ingresos`, `/egresos` y `/operaciones/cargas` redirigen a la nueva arquitectura.
+- Preparado para incorporar login con Firebase Auth + Turnstile, menu de usuario/logout y exportacion a PDF.
 
-## Despliegue recomendado: Firebase App Hosting
+## Colecciones Firebase
 
-Este proyecto usa `firebase-admin`, rutas dinamicas y renderizado server-side, por lo que `App Hosting` es la opcion correcta.
+- `descargas`: registros de ingresos de mercaderia.
+- `cargas`: registros de egresos de mercaderia.
+- `envases`: catalogo y stock consolidado de envases.
+- `operaciones_keys`: claves de idempotencia por carta de porte/remito.
+- `dashboard_resumen_diario`: acumulados diarios.
 
-### Lo que ya queda versionado
-
-- Configuracion base del proyecto en `apphosting.yaml`
-- Proyecto por defecto `lab-alta` en `.firebaserc`
-- Validacion de build en GitHub Actions
-
-### Lo que falta hacer una sola vez en Firebase
-
-1. Reautenticar la CLI local:
-
-   ```bash
-   firebase login --reauth
-   ```
-
-2. En Firebase Console, abrir `App Hosting`.
-3. Crear o editar el backend del proyecto `lab-alta`.
-4. Conectar el repositorio `juanjesusgrvch/Audit-Alta`.
-5. Definir:
-   - Root directory: `/`
-   - Live branch: `main`
-   - Automatic rollouts: habilitado
-
-Cuando eso quede conectado, cada `git push` a `main` deberia disparar un rollout automaticamente.
-
-## Variables de entorno
-
-Las variables base de proyecto y bucket ya estan definidas en `apphosting.yaml`.
-
-Si el backend necesita mas variables o secretos, agregalos ahi usando la sintaxis de App Hosting. Para este proyecto, `firebase-admin` ya soporta `applicationDefault()`, asi que en App Hosting no hace falta forzar una service account por variables si el backend tiene permisos sobre Firestore y Storage.
+Las colecciones heredadas `envase_tipos`, `envase_stock`, `envase_movimientos` y `operaciones` se mantienen como compatibilidad de migracion.
 
 ## Desarrollo local
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
+
+La app queda disponible en `http://localhost:3000`.
 
 ## Verificacion local
 
 ```bash
 npm run build
 ```
+
+## Limpieza
+
+Los artefactos generados que se pueden borrar sin tocar fuentes son:
+
+```bash
+.next
+node_modules
+.npm-cache*
+.tmp-*
+```
+
+No borrar `ejemplos/`, `stitch/stitch`, `.env.local`, Firebase config, reglas, lockfile, codigo fuente ni `.git`.
+
+## Despliegue recomendado
+
+Este proyecto usa `firebase-admin`, rutas dinamicas y renderizado server-side, por lo que `Firebase App Hosting` es la opcion recomendada.
+
+Las variables base de proyecto y bucket estan en `apphosting.yaml`.
+
+Para produccion:
+
+- `firebase-admin` usa la service account administrada del backend de App Hosting via `applicationDefault()`.
+- No subir un JSON de service account al repositorio ni configurar `GOOGLE_APPLICATION_CREDENTIALS` en `apphosting.yaml`.
+- `TURNSTILE_SECRET_KEY` debe cargarse en Secret Manager y exponerse al backend con la referencia declarada en `apphosting.yaml`.
+
+Para desarrollo local:
+
+- usar `GOOGLE_APPLICATION_CREDENTIALS=./lab-alta-firebase-adminsdk-fbsvc-f534509e46.json` en `.env.local`
+- mantener ese JSON fuera de git

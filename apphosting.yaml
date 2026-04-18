@@ -1,6 +1,9 @@
 # Base App Hosting configuration for the Firebase project.
 # Automatic rollouts on git push still require a backend connected to this
 # repository and a live branch configured in the Firebase console.
+# In production, firebase-admin should rely on the App Hosting runtime service
+# account via applicationDefault(). Do not point GOOGLE_APPLICATION_CREDENTIALS
+# to a local JSON file in this config.
 
 runConfig:
   cpu: 1
@@ -8,6 +11,18 @@ runConfig:
   concurrency: 40
 
 env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyAZjvIFLnf57y9VJiwzyw9ObLNl8kPWsVU
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: lab-alta.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
     value: lab-alta
     availability:
@@ -18,6 +33,35 @@ env:
     value: lab-alta.firebasestorage.app
     availability:
       - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: 963670520154
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:963670520154:web:84783319441c6383a14363
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-RHKSEW5HZH
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    value: 0x4AAAAAAC2ONQ6ycD47hTv0
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: TURNSTILE_SECRET_KEY
+    secret: TURNSTILE_SECRET_KEY
+    availability:
       - RUNTIME
 
   - variable: FIREBASE_PROJECT_ID

@@ -15,6 +15,132 @@
       ]
     },
     {
+      "collectionGroup": "envases",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "activo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orden",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "descargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mesKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "descargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "descargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "descargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "envaseTipoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mesKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cargas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "envaseTipoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "operaciones",
       "queryScope": "COLLECTION",
       "fields": [
@@ -160,6 +286,90 @@
         },
         {
           "fieldPath": "fechaOperacion",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "procesos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mesKey",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaProceso",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "procesos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaProceso",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "procesos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "productoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaProceso",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "procesos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "proveedorNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaProceso",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "procesos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tipoProcesoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaProceso",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "procesos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "numeroProcesoNormalizado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaProceso",
           "order": "DESCENDING"
         }
       ]
