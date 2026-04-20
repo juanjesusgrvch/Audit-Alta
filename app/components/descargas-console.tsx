@@ -2278,7 +2278,9 @@ function IngresoDescargaModal({
         requestBody.set("fechaOperacion", values.fechaOperacion);
         requestBody.set(
           "numeroCartaPorte",
-          hasCartaPorte ? values.numeroCartaPorte : "",
+          hasCartaPorte
+            ? values.numeroCartaPorte
+            : generatedCartaPorteRef.current,
         );
         requestBody.set("cliente", values.cliente);
         requestBody.set("producto", values.producto?.trim() ?? "");
