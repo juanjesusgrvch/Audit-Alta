@@ -55,15 +55,18 @@ No borrar `ejemplos/`, `stitch/stitch`, `.env.local`, Firebase config, reglas, l
 
 Este proyecto usa `firebase-admin`, rutas dinamicas y renderizado server-side, por lo que `Firebase App Hosting` es la opcion recomendada.
 
-Las variables base de proyecto y bucket estan en `apphosting.yaml`.
+Las variables publicas y privadas deben configurarse por entorno. El repo no versiona secretos reales.
 
 Para produccion:
 
 - `firebase-admin` usa la service account administrada del backend de App Hosting via `applicationDefault()`.
+- Firebase App Hosting inyecta `FIREBASE_WEBAPP_CONFIG` y `FIREBASE_CONFIG`, que el proyecto usa como fallback para evitar versionar configuracion publica innecesaria.
 - No subir un JSON de service account al repositorio ni configurar `GOOGLE_APPLICATION_CREDENTIALS` en `apphosting.yaml`.
 - `TURNSTILE_SECRET_KEY` debe cargarse en Secret Manager y exponerse al backend con la referencia declarada en `apphosting.yaml`.
+- Si reutilizas este repo para otro proyecto, reemplaza tambien los valores publicos del cliente definidos en `apphosting.yaml`.
 
 Para desarrollo local:
 
-- usar `GOOGLE_APPLICATION_CREDENTIALS=./lab-alta-firebase-adminsdk-fbsvc-f534509e46.json` en `.env.local`
+- copiar `.env.example` a `.env.local` y completar tus propios valores
+- usar `GOOGLE_APPLICATION_CREDENTIALS=./firebase-service-account.json` en `.env.local`
 - mantener ese JSON fuera de git

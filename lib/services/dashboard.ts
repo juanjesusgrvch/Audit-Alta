@@ -1,6 +1,7 @@
 import "server-only";
 
-import { DEFAULT_PUBLIC_FIREBASE_CONFIG } from "@/lib/firebase/public-config";
+import { getOptionalPublicFirebaseConfig } from "@/lib/firebase/public-config";
+import { getFirebaseSystemConfig } from "@/lib/firebase/system-config";
 import { getModuloOperacionData, getEnvasesOperativos } from "@/lib/services/operaciones";
 import { crearResumenDiarioVacio } from "@/lib/utils";
 import type { DashboardResumenDiario } from "@/types/schema";
@@ -21,6 +22,8 @@ type DashboardOverview = {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const fechaActual = new Date().toISOString().slice(0, 10);
   const emptyResumen = crearResumenDiarioVacio(fechaActual);
+  const publicFirebaseConfig = getOptionalPublicFirebaseConfig();
+  const systemConfig = getFirebaseSystemConfig();
 
   try {
     const [ingresos, egresos, envases] = await Promise.all([
@@ -48,9 +51,9 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       fechaActual,
       firestoreDisponible: false,
       storageConfigurado: Boolean(
-        process.env.FIREBASE_STORAGE_BUCKET ??
-          process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
-          DEFAULT_PUBLIC_FIREBASE_CONFIG.storageBucket
+        process.env.FIREBASE_STORAGE_BUCKET?.trim() ??
+          systemConfig.storageBucket ??
+          publicFirebaseConfig.storageBucket
       ),
       resumenHoy: emptyResumen,
       ingresosHoy: 0,

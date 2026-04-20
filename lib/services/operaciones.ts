@@ -2,7 +2,8 @@ import "server-only";
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { DEFAULT_PUBLIC_FIREBASE_CONFIG } from "@/lib/firebase/public-config";
+import { getOptionalPublicFirebaseConfig } from "@/lib/firebase/public-config";
+import { getFirebaseSystemConfig } from "@/lib/firebase/system-config";
 import {
   getPlantStockAvailabilityMap,
   getInventoryIdForDetail,
@@ -174,10 +175,13 @@ const DESCARGA_GRANEL_CODE = "GRANEL";
 const DESCARGA_GRANEL_ESTADO = "A granel";
 
 function getStorageConfigured() {
+  const publicFirebaseConfig = getOptionalPublicFirebaseConfig();
+  const systemConfig = getFirebaseSystemConfig();
+
   return Boolean(
-    process.env.FIREBASE_STORAGE_BUCKET ??
-      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.storageBucket
+    process.env.FIREBASE_STORAGE_BUCKET?.trim() ??
+      systemConfig.storageBucket ??
+      publicFirebaseConfig.storageBucket
   );
 }
 

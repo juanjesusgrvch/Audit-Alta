@@ -1,35 +1,62 @@
-export const DEFAULT_PUBLIC_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAZjvIFLnf57y9VJiwzyw9ObLNl8kPWsVU",
-  authDomain: "lab-alta.firebaseapp.com",
-  projectId: "lab-alta",
-  storageBucket: "lab-alta.firebasestorage.app",
-  messagingSenderId: "963670520154",
-  appId: "1:963670520154:web:84783319441c6383a14363",
-  measurementId: "G-RHKSEW5HZH"
-} as const;
+export type PublicFirebaseConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
+};
+
+function readPublicEnvValue(name: string) {
+  const value = process.env[name]?.trim();
+
+  return value && value.length > 0 ? value : undefined;
+}
+
+export function getOptionalPublicFirebaseConfig(): Partial<PublicFirebaseConfig> {
+  return {
+    apiKey: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_API_KEY"),
+    authDomain: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
+    projectId: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
+    storageBucket: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
+    messagingSenderId: readPublicEnvValue(
+      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
+    ),
+    appId: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_APP_ID"),
+    measurementId: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID")
+  };
+}
 
 export function getPublicFirebaseConfig() {
+  const config = getOptionalPublicFirebaseConfig();
+  const missingKeys = [
+    ["NEXT_PUBLIC_FIREBASE_API_KEY", config.apiKey],
+    ["NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", config.authDomain],
+    ["NEXT_PUBLIC_FIREBASE_PROJECT_ID", config.projectId],
+    ["NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET", config.storageBucket],
+    [
+      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+      config.messagingSenderId
+    ],
+    ["NEXT_PUBLIC_FIREBASE_APP_ID", config.appId]
+  ]
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Faltan variables publicas de Firebase: ${missingKeys.join(", ")}.`
+    );
+  }
+
   return {
-    apiKey:
-      process.env.NEXT_PUBLIC_FIREBASE_API_KEY ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.apiKey,
-    authDomain:
-      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.authDomain,
-    projectId:
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.projectId,
-    storageBucket:
-      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.storageBucket,
-    messagingSenderId:
-      process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.messagingSenderId,
-    appId:
-      process.env.NEXT_PUBLIC_FIREBASE_APP_ID ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.appId,
-    measurementId:
-      process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ??
-      DEFAULT_PUBLIC_FIREBASE_CONFIG.measurementId
+    apiKey: config.apiKey!,
+    authDomain: config.authDomain!,
+    projectId: config.projectId!,
+    storageBucket: config.storageBucket!,
+    messagingSenderId: config.messagingSenderId!,
+    appId: config.appId!,
+    measurementId: config.measurementId
   };
 }

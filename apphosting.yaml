@@ -11,42 +11,6 @@ runConfig:
   concurrency: 40
 
 env:
-  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyAZjvIFLnf57y9VJiwzyw9ObLNl8kPWsVU
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: lab-alta.firebaseapp.com
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: lab-alta
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: lab-alta.firebasestorage.app
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: 963670520154
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:963670520154:web:84783319441c6383a14363
-    availability:
-      - BUILD
-      - RUNTIME
-
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: G-RHKSEW5HZH
     availability:
@@ -61,15 +25,5 @@ env:
 
   - variable: TURNSTILE_SECRET_KEY
     secret: TURNSTILE_SECRET_KEY
-    availability:
-      - RUNTIME
-
-  - variable: FIREBASE_PROJECT_ID
-    value: lab-alta
-    availability:
-      - RUNTIME
-
-  - variable: FIREBASE_STORAGE_BUCKET
-    value: lab-alta.firebasestorage.app
     availability:
       - RUNTIME

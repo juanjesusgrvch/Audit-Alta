@@ -12,7 +12,8 @@ import {
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { DEFAULT_PUBLIC_FIREBASE_CONFIG } from "@/lib/firebase/public-config";
+import { getOptionalPublicFirebaseConfig } from "@/lib/firebase/public-config";
+import { getFirebaseSystemConfig } from "@/lib/firebase/system-config";
 
 declare global {
   var __firebaseAdminApp__: App | undefined;
@@ -21,19 +22,35 @@ declare global {
 let warnedAboutApplicationDefault = false;
 
 function getFirebaseProjectId() {
+  const publicConfig = getOptionalPublicFirebaseConfig();
+  const systemConfig = getFirebaseSystemConfig();
   const projectId =
-    process.env.FIREBASE_PROJECT_ID ??
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ??
-    DEFAULT_PUBLIC_FIREBASE_CONFIG.projectId;
+    process.env.FIREBASE_PROJECT_ID?.trim() ??
+    systemConfig.projectId ??
+    publicConfig.projectId;
+
+  if (!projectId) {
+    throw new Error(
+      "Falta configurar FIREBASE_PROJECT_ID o NEXT_PUBLIC_FIREBASE_PROJECT_ID."
+    );
+  }
 
   return projectId;
 }
 
 export function getFirebaseStorageBucketName() {
+  const publicConfig = getOptionalPublicFirebaseConfig();
+  const systemConfig = getFirebaseSystemConfig();
   const storageBucket =
-    process.env.FIREBASE_STORAGE_BUCKET ??
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
-    DEFAULT_PUBLIC_FIREBASE_CONFIG.storageBucket;
+    process.env.FIREBASE_STORAGE_BUCKET?.trim() ??
+    systemConfig.storageBucket ??
+    publicConfig.storageBucket;
+
+  if (!storageBucket) {
+    throw new Error(
+      "Falta configurar FIREBASE_STORAGE_BUCKET o NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET."
+    );
+  }
 
   return storageBucket;
 }
