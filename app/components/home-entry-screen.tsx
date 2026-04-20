@@ -27,8 +27,8 @@ export function HomeEntryScreen() {
 
   return (
     <LoginPanel
-      description="Ingresa con Firebase para abrir la consola de modulos en una sola ruta y reutilizar tus credenciales del proyecto anterior."
-      title="Audit Alta"
+      description="Ingresa con tu cuenta para abrir la consola de modulos."
+      title="Stock-Alta"
     />
   );
 }

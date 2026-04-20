@@ -7,8 +7,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Stock-Alta",
   icons: {
-    icon: "/images/favicon-stock.svg",
-    shortcut: "/images/favicon-stock.svg",
+    icon: "/images/favicon-stock.svg?v=20260420",
+    shortcut: "/images/favicon-stock.svg?v=20260420",
   },
   description:
     "Consola de descargas, cargas y gestion de mercadería para planta industrial.",

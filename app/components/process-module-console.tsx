@@ -532,36 +532,56 @@ function MetricCard({
   );
 }
 
-function SalidaDetailItem({
-  align = "left",
-  emphasis = false,
-  label,
-  value,
+function ProcessHistorySalidaCard({
+  salida,
 }: {
-  align?: "left" | "center" | "right";
-  emphasis?: boolean;
-  label: string;
-  value: string;
+  salida: RegistroProceso["salidas"][number];
 }) {
-  const alignClass =
-    align === "center"
-      ? "text-left xl:text-center"
-      : align === "right"
-        ? "text-left xl:text-right"
-        : "text-left";
+  const envaseLabel = salida.envaseTipoId
+    ? `${salida.envaseTipoNombre || "Sin envase"} · ${formatNumber(
+        Number(salida.envaseKilos ?? 0),
+        0,
+      )} kg · ${formatNumber(Number(salida.cantidadEnvases ?? 0), 0)} env.`
+    : "Sin envase";
 
   return (
-    <div
-      className={`grid gap-1 rounded-lg bg-white/70 px-3 py-2 ring-1 ring-[var(--line)]/70 ${alignClass}`}
-    >
-      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
-        {label}
-      </span>
-      <span
-        className={`break-words text-sm ${emphasis ? "font-semibold text-[var(--text)]" : "text-[var(--text-soft)]"}`}
-      >
-        {value}
-      </span>
+    <div className="rounded-xl bg-[var(--surface)]/70 px-3 py-3 ring-1 ring-[var(--line)]">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px] sm:items-start">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Grado
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[var(--text)]">
+            {GRADO_LABELS[salida.grado]}
+          </p>
+        </div>
+        <div className="sm:text-right">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Kilos
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[var(--text)]">
+            {formatKilos(salida.kilos)}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Detalle
+          </p>
+          <p className="mt-1 break-words text-sm text-[var(--text-soft)]">
+            {salida.detalle}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Envases
+          </p>
+          <p className="mt-1 break-words text-sm text-[var(--text-soft)]">
+            {envaseLabel}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -662,7 +682,7 @@ function HistorialCard({
 
       {expanded ? (
         <div className="mt-4 grid gap-4 border-t border-[var(--line)] pt-4">
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3">
             <div className="rounded-xl bg-[var(--surface-low)] px-4 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)]">
               <p>
                 <span className="font-bold text-[var(--text)]">Cliente:</span>{" "}
@@ -687,45 +707,12 @@ function HistorialCard({
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">
                 Salidas del proceso
               </p>
-              <div className="mt-3 grid gap-2">
+              <div className="mt-3 grid gap-3 xl:grid-cols-2">
                 {record.salidas.map((salida) => (
-                  <div
-                    className="rounded-xl bg-[var(--surface)]/70 px-3 py-3 ring-1 ring-[var(--line)]"
+                  <ProcessHistorySalidaCard
                     key={`${record.id}-${salida.id}`}
-                  >
-                    <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)_140px_minmax(220px,1fr)]">
-                      <SalidaDetailItem
-                        emphasis
-                        label="Grado"
-                        value={GRADO_LABELS[salida.grado]}
-                      />
-                      <SalidaDetailItem
-                        label="Detalle"
-                        value={salida.detalle}
-                      />
-                      <SalidaDetailItem
-                        align="center"
-                        emphasis
-                        label="Kilos"
-                        value={formatKilos(salida.kilos)}
-                      />
-                      <SalidaDetailItem
-                        align="right"
-                        label="Envases"
-                        value={
-                          salida.envaseTipoId
-                            ? `${salida.envaseTipoNombre || "Sin envase"} · ${formatNumber(
-                                Number(salida.envaseKilos ?? 0),
-                                0,
-                              )} kg · ${formatNumber(
-                                Number(salida.cantidadEnvases ?? 0),
-                                0,
-                              )} env.`
-                            : "Sin envase"
-                        }
-                      />
-                    </div>
-                  </div>
+                    salida={salida}
+                  />
                 ))}
               </div>
             </div>

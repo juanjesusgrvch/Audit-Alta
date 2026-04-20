@@ -30,24 +30,37 @@ export function AutoFitMetricValue({
     let frame = 0;
 
     const fitText = () => {
-      text.style.fontSize = `${maxSizeRem}rem`;
-      const availableWidth = container.clientWidth;
-      const contentWidth = text.scrollWidth;
+      const rootFontSize =
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        ) || 16;
+      const minFontSizePx = minSizeRem * rootFontSize;
+      const stepPx = Math.max(0.5, rootFontSize * 0.045);
+      let nextFontSizePx = maxSizeRem * rootFontSize;
 
-      if (availableWidth <= 0 || contentWidth <= 0) {
+      text.style.fontSize = `${nextFontSizePx}px`;
+      const availableWidth = container.clientWidth;
+
+      if (availableWidth <= 0) {
         setFontSizeRem(maxSizeRem);
         return;
       }
 
-      const nextFontSize =
-        contentWidth > availableWidth
-          ? Math.max(
-              minSizeRem,
-              Number(((maxSizeRem * availableWidth) / contentWidth).toFixed(3)),
-            )
-          : maxSizeRem;
+      let contentWidth = text.scrollWidth;
+      let guard = 0;
 
-      setFontSizeRem(nextFontSize);
+      while (
+        contentWidth > availableWidth &&
+        nextFontSizePx > minFontSizePx &&
+        guard < 60
+      ) {
+        nextFontSizePx = Math.max(minFontSizePx, nextFontSizePx - stepPx);
+        text.style.fontSize = `${nextFontSizePx}px`;
+        contentWidth = text.scrollWidth;
+        guard += 1;
+      }
+
+      setFontSizeRem(Number((nextFontSizePx / rootFontSize).toFixed(3)));
     };
 
     const scheduleFit = () => {

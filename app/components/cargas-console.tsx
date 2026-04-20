@@ -661,7 +661,7 @@ function MetricCard({
       <AutoFitMetricValue
         className="w-full whitespace-nowrap font-display font-bold leading-none tracking-[-0.08em] text-[var(--primary)] md:tracking-[-0.04em]"
         maxSizeRem={3}
-        minSizeRem={0.74}
+        minSizeRem={0.5}
         value={value}
       />
       <p className="mt-2 text-xs font-semibold text-[var(--text-soft)]">
@@ -2570,7 +2570,9 @@ function CargaModal({
       append({
         inventoryId: manualStockOptions[0]?.inventoryId ?? "",
         envaseTipoId:
-          manualStockOptions[0]?.envaseTipoId ?? envaseSuggestions[0] ?? "GRANEL",
+          manualStockOptions[0]?.envaseTipoId ??
+          envaseSuggestions[0] ??
+          "GRANEL",
         envaseTipoNombre: manualStockOptions[0]?.envaseTipoNombre ?? "",
         envaseEstado: manualStockOptions[0]?.envaseEstado ?? "Conforme",
         kilos: manualStockOptions[0]?.kilos ?? 0,
@@ -2942,9 +2944,8 @@ function CargaModal({
 
                 {initialSeed.envasesNoMapeados > 0 ? (
                   <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100">
-                    Hay {initialSeed.envasesNoMapeados} envase(s) legacy sin
-                    equivalencia directa en el catalogo actual. Revise el
-                    detalle antes de guardar.
+                    {initialSeed.envasesNoMapeados} Revise EL detalle de envases
+                    antes de guardar.
                   </div>
                 ) : null}
               </ModalField>

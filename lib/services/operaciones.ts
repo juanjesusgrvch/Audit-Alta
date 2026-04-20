@@ -385,7 +385,7 @@ function parseLegacyDescargaSnapshot(
     typeof data.numeroCartaPorte === "string" &&
     data.numeroCartaPorte.trim().length > 0
       ? data.numeroCartaPorte
-      : parsed.data.id;
+      : "";
   const cartaPorteUrl =
     data &&
     typeof data === "object" &&
