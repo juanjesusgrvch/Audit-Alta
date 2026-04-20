@@ -77,6 +77,7 @@ export async function handleOperacionRequest<TData>({
       formData,
       "loteEnvasadoDetalles",
     );
+    const envaseMode = getStringValue(formData, "envaseMode").trim();
     const fields = {
       tipoOperacion,
       fechaOperacion: getStringValue(formData, "fechaOperacion"),
@@ -91,7 +92,7 @@ export async function handleOperacionRequest<TData>({
       cantidadEnvases: getStringValue(formData, "cantidadEnvases"),
       envaseTipoId: getStringValue(formData, "envaseTipoId"),
       envaseEstado: getStringValue(formData, "envaseEstado"),
-      envaseMode: getStringValue(formData, "envaseMode"),
+      envaseMode: envaseMode.length > 0 ? envaseMode : undefined,
       detalleEnvases,
       loteEnvasadoDetalles,
       observaciones: getStringValue(formData, "observaciones")

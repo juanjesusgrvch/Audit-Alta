@@ -23,6 +23,7 @@ import { ModuleIntegratedFilters } from "@/app/components/module-integrated-filt
 import { ModuleLoadingIndicator } from "@/app/components/module-loading-indicator";
 import { ModuleSearchBox } from "@/app/components/module-search-box";
 import { PaginationControls } from "@/app/components/pagination-controls";
+import { AutoFitMetricValue } from "@/app/components/auto-fit-metric-value";
 import { fetchWithFirebaseAuth } from "@/lib/client/auth-fetch";
 import {
   getDefaultCampaignId,
@@ -518,13 +519,50 @@ function MetricCard({
       <p className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
         {label}
       </p>
-      <p className="mt-3 overflow-hidden text-ellipsis whitespace-nowrap font-display text-[clamp(1.8rem,4vw,2.8rem)] font-bold leading-none text-[var(--primary)]">
-        {value}
-      </p>
+      <AutoFitMetricValue
+        className="w-full whitespace-nowrap font-display font-bold leading-none text-[var(--primary)]"
+        maxSizeRem={2.8}
+        minSizeRem={0.9}
+        value={value}
+      />
       <p className="mt-2 text-xs font-semibold text-[var(--text-soft)]">
         {helper}
       </p>
     </article>
+  );
+}
+
+function SalidaDetailItem({
+  align = "left",
+  emphasis = false,
+  label,
+  value,
+}: {
+  align?: "left" | "center" | "right";
+  emphasis?: boolean;
+  label: string;
+  value: string;
+}) {
+  const alignClass =
+    align === "center"
+      ? "text-left xl:text-center"
+      : align === "right"
+        ? "text-left xl:text-right"
+        : "text-left";
+
+  return (
+    <div
+      className={`grid gap-1 rounded-lg bg-white/70 px-3 py-2 ring-1 ring-[var(--line)]/70 ${alignClass}`}
+    >
+      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+        {label}
+      </span>
+      <span
+        className={`break-words text-sm ${emphasis ? "font-semibold text-[var(--text)]" : "text-[var(--text-soft)]"}`}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 
@@ -652,24 +690,41 @@ function HistorialCard({
               <div className="mt-3 grid gap-2">
                 {record.salidas.map((salida) => (
                   <div
-                    className="grid gap-3 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] md:grid-cols-[130px_minmax(0,1fr)_120px_minmax(0,1.2fr)]"
+                    className="rounded-xl bg-[var(--surface)]/70 px-3 py-3 ring-1 ring-[var(--line)]"
                     key={`${record.id}-${salida.id}`}
                   >
-                    <span className="font-semibold text-[var(--text)] md:self-center">
-                      {GRADO_LABELS[salida.grado]}
-                    </span>
-                    <span className="break-words">{salida.detalle}</span>
-                    <span className="font-semibold md:text-center">
-                      {formatKilos(salida.kilos)}
-                    </span>
-                    <span className="break-words md:text-right">
-                      {salida.envaseTipoId
-                        ? `${salida.envaseTipoNombre || "Sin envase"} | ${formatNumber(
-                            Number(salida.envaseKilos ?? 0),
-                            0,
-                          )} kg | ${formatNumber(Number(salida.cantidadEnvases ?? 0), 0)} env.`
-                        : "Sin envase"}
-                    </span>
+                    <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)_140px_minmax(220px,1fr)]">
+                      <SalidaDetailItem
+                        emphasis
+                        label="Grado"
+                        value={GRADO_LABELS[salida.grado]}
+                      />
+                      <SalidaDetailItem
+                        label="Detalle"
+                        value={salida.detalle}
+                      />
+                      <SalidaDetailItem
+                        align="center"
+                        emphasis
+                        label="Kilos"
+                        value={formatKilos(salida.kilos)}
+                      />
+                      <SalidaDetailItem
+                        align="right"
+                        label="Envases"
+                        value={
+                          salida.envaseTipoId
+                            ? `${salida.envaseTipoNombre || "Sin envase"} · ${formatNumber(
+                                Number(salida.envaseKilos ?? 0),
+                                0,
+                              )} kg · ${formatNumber(
+                                Number(salida.cantidadEnvases ?? 0),
+                                0,
+                              )} env.`
+                            : "Sin envase"
+                        }
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -42,6 +42,17 @@ type EnvaseResolved = {
   envaseVisibleId: string;
 };
 
+type RestoredPlantStockEntry = {
+  inventoryId: string;
+  visibleId: string;
+  envaseTipoId: string;
+  envaseTipoCodigo: string;
+  envaseTipoNombre: string;
+  envaseEstado: string;
+  kilos: number;
+  cantidad: number;
+};
+
 export type RegistroProceso = Pick<
   ProcesoRegistro,
   | "numeroProceso"
@@ -211,10 +222,58 @@ function getEnvaseParaProceso(
   return null;
 }
 
+function buildProcesoVisibleId(nombre: string, estado: string, kilos: number) {
+  return `${nombre} | ${estado} | ${kilos} kg`;
+}
+
+function buildRestoredPlantAvailability(previousSalidas: ProcesoSalida[]) {
+  const restoredAvailability = new Map<string, RestoredPlantStockEntry>();
+
+  for (const salida of previousSalidas) {
+    const inventoryId = compactarEspacios(salida.inventoryId ?? "");
+    const cantidad = Number(salida.cantidadEnvases ?? 0);
+
+    if (!inventoryId || cantidad <= 0) {
+      continue;
+    }
+
+    const existingEntry = restoredAvailability.get(inventoryId);
+
+    if (existingEntry) {
+      existingEntry.cantidad += cantidad;
+      continue;
+    }
+
+    const envaseTipoId = compactarEspacios(salida.envaseTipoId ?? "");
+    const envaseTipoNombre =
+      compactarEspacios(salida.envaseTipoNombre ?? "") ||
+      envaseTipoId ||
+      "Sin envase";
+    const envaseEstado = compactarEspacios(salida.envaseEstado ?? "");
+    const kilos = Number(salida.envaseKilos ?? 0);
+
+    restoredAvailability.set(inventoryId, {
+      inventoryId,
+      visibleId:
+        compactarEspacios(salida.envaseVisibleId ?? "") ||
+        buildProcesoVisibleId(envaseTipoNombre, envaseEstado, kilos),
+      envaseTipoId,
+      envaseTipoCodigo: compactarEspacios(salida.envaseTipoCodigo ?? ""),
+      envaseTipoNombre,
+      envaseEstado,
+      kilos,
+      cantidad,
+    });
+  }
+
+  return restoredAvailability;
+}
+
 async function resolveEnvaseSelections(
   transaction: FirebaseFirestore.Transaction,
   db: FirebaseFirestore.Firestore,
   salidas: ProcesoSalidaFormInput[],
+  restoredAvailabilityByInventoryId: Map<string, RestoredPlantStockEntry> = new Map(),
 ) {
   const availabilityMap = await getPlantStockAvailabilityMap();
   const fallbackEnvaseIds = [
@@ -254,20 +313,27 @@ async function resolveEnvaseSelections(
 
     if (inventoryId) {
       const stockEntry = availabilityMap.get(inventoryId);
+      const restoredEntry = restoredAvailabilityByInventoryId.get(inventoryId);
+      const resolvedEntry = stockEntry
+        ? {
+            ...stockEntry,
+            cantidad: stockEntry.cantidad + Number(restoredEntry?.cantidad ?? 0),
+          }
+        : restoredEntry;
 
-      if (!stockEntry) {
+      if (!resolvedEntry) {
         throw new Error("El envase seleccionado ya no existe en el stock general.");
       }
 
       return {
-        envaseTipoId: stockEntry.envaseTipoId,
-        codigo: stockEntry.envaseTipoCodigo,
-        nombre: stockEntry.envaseTipoNombre,
+        envaseTipoId: resolvedEntry.envaseTipoId,
+        codigo: resolvedEntry.envaseTipoCodigo,
+        nombre: resolvedEntry.envaseTipoNombre,
         activo: true,
-        inventoryId: stockEntry.inventoryId,
-        envaseEstado: stockEntry.envaseEstado,
-        envaseKilos: stockEntry.kilos,
-        envaseVisibleId: stockEntry.visibleId,
+        inventoryId: resolvedEntry.inventoryId,
+        envaseEstado: resolvedEntry.envaseEstado,
+        envaseKilos: resolvedEntry.kilos,
+        envaseVisibleId: resolvedEntry.visibleId,
       } satisfies EnvaseResolved;
     }
 
@@ -681,10 +747,13 @@ export async function actualizarProceso(
       const previousSalidas = existingRecord.success
         ? buildLegacySalidas(existingRecord.data)
         : [];
+      const restoredAvailabilityByInventoryId =
+        buildRestoredPlantAvailability(previousSalidas);
       const resolvedEnvases = await resolveEnvaseSelections(
         transaction,
         db,
         parsedInput.data.salidas,
+        restoredAvailabilityByInventoryId,
       );
       const salidas = normalizeProcesoSalidas(
         parsedInput.data,

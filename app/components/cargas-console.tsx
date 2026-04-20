@@ -17,6 +17,7 @@ import { ModuleIntegratedFilters } from "@/app/components/module-integrated-filt
 import { ModuleLoadingIndicator } from "@/app/components/module-loading-indicator";
 import { ModuleSearchBox } from "@/app/components/module-search-box";
 import { PaginationControls } from "@/app/components/pagination-controls";
+import { AutoFitMetricValue } from "@/app/components/auto-fit-metric-value";
 import { fetchWithFirebaseAuth } from "@/lib/client/auth-fetch";
 import {
   getDefaultCampaignId,
@@ -657,9 +658,12 @@ function MetricCard({
       <p className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
         {label}
       </p>
-      <p className="mt-3 w-full whitespace-nowrap font-display text-[clamp(0.74rem,5.2vw,2.25rem)] font-bold leading-none tracking-[-0.08em] text-[var(--primary)] md:text-[clamp(1.8rem,5vw,3rem)] md:tracking-[-0.04em]">
-        {value}
-      </p>
+      <AutoFitMetricValue
+        className="w-full whitespace-nowrap font-display font-bold leading-none tracking-[-0.08em] text-[var(--primary)] md:tracking-[-0.04em]"
+        maxSizeRem={3}
+        minSizeRem={0.74}
+        value={value}
+      />
       <p className="mt-2 text-xs font-semibold text-[var(--text-soft)]">
         {helper}
       </p>
@@ -1288,6 +1292,18 @@ function DispatchedPackagingCard({
 }: {
   entries: DispatchedPackagingEntry[];
 }) {
+  const entriesPerPage = 4;
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(entries.length / entriesPerPage));
+  const visibleEntries = entries.slice(
+    page * entriesPerPage,
+    (page + 1) * entriesPerPage,
+  );
+
+  useEffect(() => {
+    setPage((currentPage) => Math.min(currentPage, totalPages - 1));
+  }, [totalPages]);
+
   return (
     <article className="aether-panel rounded-2xl p-5 md:p-6">
       <div className="flex items-center justify-between gap-3">
@@ -1296,14 +1312,43 @@ function DispatchedPackagingCard({
             Envases despachados
           </p>
         </div>
-        <span className="rounded-full bg-[var(--surface-low)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--text-soft)] ring-1 ring-[var(--line)]">
-          Despachado
-        </span>
+        <div className="flex items-center gap-2">
+          {entries.length > 0 && totalPages > 1 ? (
+            <>
+              <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                Pagina {page + 1}/{totalPages}
+              </span>
+              <IconOnlyButton
+                disabled={page === 0}
+                onClick={() =>
+                  setPage((currentPage) => Math.max(0, currentPage - 1))
+                }
+                title="Pagina anterior"
+              >
+                <IconChevronLeft />
+              </IconOnlyButton>
+              <IconOnlyButton
+                disabled={page >= totalPages - 1}
+                onClick={() =>
+                  setPage((currentPage) =>
+                    Math.min(totalPages - 1, currentPage + 1),
+                  )
+                }
+                title="Pagina siguiente"
+              >
+                <IconChevronRight />
+              </IconOnlyButton>
+            </>
+          ) : null}
+          <span className="rounded-full bg-[var(--surface-low)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--text-soft)] ring-1 ring-[var(--line)]">
+            Despachado
+          </span>
+        </div>
       </div>
 
       {entries.length > 0 ? (
         <div className="mt-5 grid gap-3">
-          {entries.slice(0, 6).map((entry) => (
+          {visibleEntries.map((entry) => (
             <div
               className="grid gap-2 rounded-2xl bg-[var(--surface-low)] px-3 py-3 ring-1 ring-[var(--line)]"
               key={entry.id}
@@ -2259,6 +2304,56 @@ function CargaModal({
   const proveedor = form.watch("proveedor");
   const proceso = form.watch("proceso");
   const detalleEnvases = form.watch("detalleEnvases");
+  const manualStockOptions = useMemo(() => {
+    const optionMap = new Map<string, PlantStockOption>();
+
+    for (const entry of stockPlantaOptions) {
+      optionMap.set(entry.inventoryId, { ...entry });
+    }
+
+    for (const detail of initialSeed.values.detalleEnvases ?? []) {
+      const inventoryId = (detail.inventoryId ?? "").trim();
+      const restoredCantidad = Number(detail.cantidad ?? 0);
+
+      if (!inventoryId || restoredCantidad <= 0) {
+        continue;
+      }
+
+      const existingEntry = optionMap.get(inventoryId);
+
+      if (existingEntry) {
+        optionMap.set(inventoryId, {
+          ...existingEntry,
+          cantidad: existingEntry.cantidad + restoredCantidad,
+        });
+        continue;
+      }
+
+      const kilos = Number(detail.kilos ?? 0);
+      const envaseTipoId = (detail.envaseTipoId ?? "").trim();
+      const envaseTipoNombre =
+        (detail.envaseTipoNombre ?? "").trim() || envaseTipoId || "Sin envase";
+      const envaseEstado = (detail.envaseEstado ?? "").trim() || "Conforme";
+
+      optionMap.set(inventoryId, {
+        inventoryId,
+        visibleId: `${envaseTipoNombre} | ${envaseEstado} | ${kilos} kg`,
+        envaseTipoId,
+        envaseTipoNombre,
+        envaseEstado,
+        kilos,
+        cantidad: restoredCantidad,
+      });
+    }
+
+    return [...optionMap.values()].sort((a, b) => {
+      if (b.kilos !== a.kilos) {
+        return b.kilos - a.kilos;
+      }
+
+      return a.visibleId.localeCompare(b.visibleId, "es");
+    });
+  }, [initialSeed.values.detalleEnvases, stockPlantaOptions]);
   const relationalValues = useMemo(
     () => ({
       cliente,
@@ -2473,11 +2568,12 @@ function CargaModal({
 
     if (fields.length === 0) {
       append({
-        inventoryId: stockPlantaOptions[0]?.inventoryId ?? "",
-        envaseTipoId: envaseSuggestions[0] ?? "GRANEL",
-        envaseTipoNombre: stockPlantaOptions[0]?.envaseTipoNombre ?? "",
-        envaseEstado: "Conforme",
-        kilos: 0,
+        inventoryId: manualStockOptions[0]?.inventoryId ?? "",
+        envaseTipoId:
+          manualStockOptions[0]?.envaseTipoId ?? envaseSuggestions[0] ?? "GRANEL",
+        envaseTipoNombre: manualStockOptions[0]?.envaseTipoNombre ?? "",
+        envaseEstado: manualStockOptions[0]?.envaseEstado ?? "Conforme",
+        kilos: manualStockOptions[0]?.kilos ?? 0,
         cantidad: 1,
       });
     }
@@ -2487,8 +2583,8 @@ function CargaModal({
     fields.length,
     form,
     envaseMode,
+    manualStockOptions,
     replace,
-    stockPlantaOptions,
   ]);
 
   useEffect(() => {
@@ -2870,16 +2966,16 @@ function CargaModal({
                     className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() =>
                       append({
-                        inventoryId: stockPlantaOptions[0]?.inventoryId ?? "",
+                        inventoryId: manualStockOptions[0]?.inventoryId ?? "",
                         envaseTipoId:
-                          stockPlantaOptions[0]?.envaseTipoId ??
+                          manualStockOptions[0]?.envaseTipoId ??
                           envases[0]?.id ??
                           "GRANEL",
                         envaseTipoNombre:
-                          stockPlantaOptions[0]?.envaseTipoNombre ?? "",
+                          manualStockOptions[0]?.envaseTipoNombre ?? "",
                         envaseEstado:
-                          stockPlantaOptions[0]?.envaseEstado ?? "Conforme",
-                        kilos: stockPlantaOptions[0]?.kilos ?? 0,
+                          manualStockOptions[0]?.envaseEstado ?? "Conforme",
+                        kilos: manualStockOptions[0]?.kilos ?? 0,
                         cantidad: 1,
                       })
                     }
@@ -2893,7 +2989,7 @@ function CargaModal({
                     const selectedInventoryId =
                       form.watch(`detalleEnvases.${index}.inventoryId`) ?? "";
                     const currentStockEntry =
-                      stockPlantaOptions.find(
+                      manualStockOptions.find(
                         (entry) => entry.inventoryId === selectedInventoryId,
                       ) ?? null;
                     const maxStock = currentStockEntry?.cantidad ?? 0;
@@ -2939,7 +3035,7 @@ function CargaModal({
                             className="modal-field bg-white"
                             onChange={(event) => {
                               const selectedEntry =
-                                stockPlantaOptions.find(
+                                manualStockOptions.find(
                                   (entry) =>
                                     entry.inventoryId === event.target.value,
                                 ) ?? null;
@@ -2971,7 +3067,7 @@ function CargaModal({
                             }}
                             value={selectedInventoryId}
                           >
-                            {stockPlantaOptions.map((entry) => (
+                            {manualStockOptions.map((entry) => (
                               <option
                                 key={entry.inventoryId}
                                 value={entry.inventoryId}

@@ -15,6 +15,7 @@ import { ConsoleShell } from "@/app/components/console-shell";
 import { ModuleIntegratedFilters } from "@/app/components/module-integrated-filters";
 import { ModuleLoadingIndicator } from "@/app/components/module-loading-indicator";
 import { ModuleSearchBox } from "@/app/components/module-search-box";
+import { AutoFitMetricValue } from "@/app/components/auto-fit-metric-value";
 import { fetchWithFirebaseAuth } from "@/lib/client/auth-fetch";
 import {
   getDefaultCampaignId,
@@ -613,9 +614,12 @@ function MetricCard({
       <p className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
         {label}
       </p>
-      <p className="mt-3 w-full whitespace-nowrap font-display text-[clamp(0.74rem,5.2vw,2.25rem)] font-bold leading-none tracking-[-0.08em] text-[var(--primary)] md:text-[clamp(1.8rem,5vw,3rem)] md:tracking-[-0.04em]">
-        {value}
-      </p>
+      <AutoFitMetricValue
+        className="w-full whitespace-nowrap font-display font-bold leading-none tracking-[-0.08em] text-[var(--primary)] md:tracking-[-0.04em]"
+        maxSizeRem={3}
+        minSizeRem={0.74}
+        value={value}
+      />
       <p className="mt-2 text-xs font-semibold text-[var(--text-soft)]">
         {helper}
       </p>
@@ -2293,7 +2297,9 @@ function IngresoDescargaModal({
           "envaseEstado",
           firstDetail?.envaseEstado || SIN_ENVASE_ESTADO,
         );
+        requestBody.set("envaseMode", hasEnvases ? "manual" : "granel");
         requestBody.set("detalleEnvases", JSON.stringify(detalle));
+        requestBody.set("loteEnvasadoDetalles", JSON.stringify([]));
         requestBody.set("observaciones", values.observaciones ?? "");
 
         const response = await fetchWithFirebaseAuth("/api/descargas", {
