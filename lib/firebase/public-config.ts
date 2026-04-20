@@ -8,23 +8,33 @@ export type PublicFirebaseConfig = {
   measurementId?: string;
 };
 
-function readPublicEnvValue(name: string) {
-  const value = process.env[name]?.trim();
+function normalizePublicEnvValue(value: string | undefined) {
+  const normalizedValue = value?.trim();
 
-  return value && value.length > 0 ? value : undefined;
+  return normalizedValue && normalizedValue.length > 0
+    ? normalizedValue
+    : undefined;
 }
 
 export function getOptionalPublicFirebaseConfig(): Partial<PublicFirebaseConfig> {
   return {
-    apiKey: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_API_KEY"),
-    authDomain: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
-    projectId: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
-    storageBucket: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
-    messagingSenderId: readPublicEnvValue(
-      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
+    apiKey: normalizePublicEnvValue(process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
+    authDomain: normalizePublicEnvValue(
+      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     ),
-    appId: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_APP_ID"),
-    measurementId: readPublicEnvValue("NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID")
+    projectId: normalizePublicEnvValue(
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    ),
+    storageBucket: normalizePublicEnvValue(
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    ),
+    messagingSenderId: normalizePublicEnvValue(
+      process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    ),
+    appId: normalizePublicEnvValue(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
+    measurementId: normalizePublicEnvValue(
+      process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    )
   };
 }
 
