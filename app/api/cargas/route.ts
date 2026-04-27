@@ -35,6 +35,16 @@ function getFileValue(formData: FormData, key: string) {
   return value instanceof File ? value : null;
 }
 
+function getBooleanValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  return value.trim().toLowerCase() === "true";
+}
+
 function parseDetalleEnvases(formData: FormData) {
   const rawValue = formData.get("detalleEnvases");
 
@@ -146,6 +156,10 @@ export async function PATCH(request: Request) {
         envaseTipoId: getStringValue(formData, "envaseTipoId"),
         envaseEstado: getStringValue(formData, "envaseEstado"),
         envaseMode: getStringValue(formData, "envaseMode"),
+        confirmarStockInsuficiente: getBooleanValue(
+          formData,
+          "confirmarStockInsuficiente",
+        ),
         detalleEnvases,
         loteEnvasadoDetalles,
         cartaPortePdf,

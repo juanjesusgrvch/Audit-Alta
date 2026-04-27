@@ -281,6 +281,35 @@ function isManualEditable(movement: EnvasesLedgerHistoryRecord) {
   return movement.recordOrigin === "manual" && Boolean(movement.manualOrigin);
 }
 
+function buildOriginModuleHref(
+  movement: EnvasesLedgerHistoryRecord,
+  intent: "edit" | "delete",
+) {
+  const sourceId = movement.sourceId?.trim();
+
+  if (!sourceId) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    intent,
+    recordId: sourceId,
+    source: "envases",
+    tab:
+      movement.recordOrigin === "descarga"
+        ? "descargas"
+        : movement.recordOrigin === "carga"
+          ? "cargas"
+          : "procesos",
+  });
+
+  if (movement.recordOrigin === "proceso" && movement.sourceSubId) {
+    params.set("subRecordId", movement.sourceSubId);
+  }
+
+  return `/modulos?${params.toString()}`;
+}
+
 function findEnvaseOption(envases: EnvaseOption[], rawValue: string) {
   const normalizedValue = normalize(rawValue);
 
@@ -296,6 +325,10 @@ function buildAccountGroups(movements: EnvasesLedgerHistoryRecord[]) {
   const items = new Map<string, AccountItem>();
 
   for (const movement of movements) {
+    if (!movement.countsTowardAccount) {
+      continue;
+    }
+
     const current = items.get(movement.inventoryId) ?? {
       inventoryId: movement.inventoryId,
       visibleId: movement.visibleId,
@@ -375,6 +408,10 @@ function buildBalanceRows(movements: EnvasesLedgerHistoryRecord[]) {
   >();
 
   for (const movement of movements) {
+    if (!movement.countsTowardAccount) {
+      continue;
+    }
+
     const current = rows.get(movement.inventoryId) ?? {
       inventoryId: movement.inventoryId,
       visibleId: movement.visibleId,
@@ -708,7 +745,12 @@ function HistoryRow({
   onEdit: () => void;
   onToggle: () => void;
 }) {
-  const isEditable = isManualEditable(movement);
+  const editTitle = isManualEditable(movement)
+    ? "Editar movimiento"
+    : "Ir al origen para editar";
+  const deleteTitle = isManualEditable(movement)
+    ? "Eliminar movimiento"
+    : "Ir al origen para eliminar";
 
   return (
     <article
@@ -742,25 +784,21 @@ function HistoryRow({
           >
             <EyeIcon className="h-4 w-4" />
           </IconOnlyButton>
-          {isEditable ? (
-            <>
-              <IconOnlyButton
-                disabled={isPending}
-                onClick={onEdit}
-                title="Editar movimiento"
-              >
-                <PencilIcon className="h-4 w-4" />
-              </IconOnlyButton>
-              <IconOnlyButton
-                danger
-                disabled={isPending}
-                onClick={onDelete}
-                title="Eliminar movimiento"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </IconOnlyButton>
-            </>
-          ) : null}
+          <IconOnlyButton
+            disabled={isPending}
+            onClick={onEdit}
+            title={editTitle}
+          >
+            <PencilIcon className="h-4 w-4" />
+          </IconOnlyButton>
+          <IconOnlyButton
+            danger
+            disabled={isPending}
+            onClick={onDelete}
+            title={deleteTitle}
+          >
+            <TrashIcon className="h-4 w-4" />
+          </IconOnlyButton>
         </div>
       </div>
 
@@ -1574,6 +1612,7 @@ export function EnvasesConsole({
   loadError = null,
   stockPlanta,
 }: EnvasesConsoleProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
@@ -1831,7 +1870,43 @@ export function EnvasesConsole({
     setSelectedClient(availableClients[nextIndex] ?? "");
   }
 
+  function handleEditMovement(movement: EnvasesLedgerHistoryRecord) {
+    if (isManualEditable(movement)) {
+      setEditingMovement(movement);
+      return;
+    }
+
+    const href = buildOriginModuleHref(movement, "edit");
+
+    if (!href) {
+      setFeedback({
+        tone: "error",
+        message:
+          "No se encontro el registro de origen para editar este movimiento.",
+      });
+      return;
+    }
+
+    router.push(href);
+  }
+
   async function handleDeleteMovement(movement: EnvasesLedgerHistoryRecord) {
+    if (!isManualEditable(movement)) {
+      const href = buildOriginModuleHref(movement, "delete");
+
+      if (!href) {
+        setFeedback({
+          tone: "error",
+          message:
+            "No se encontro el registro de origen para eliminar este movimiento.",
+        });
+        return;
+      }
+
+      router.push(href);
+      return;
+    }
+
     const confirmed = window.confirm(
       `Va a eliminar el movimiento ${movementTypeLabel(movement)} del ${formatDisplayDate(
         getMovementDate(movement),
@@ -2106,7 +2181,7 @@ export function EnvasesConsole({
                       key={movement.id}
                       movement={movement}
                       onDelete={() => handleDeleteMovement(movement)}
-                      onEdit={() => setEditingMovement(movement)}
+                      onEdit={() => handleEditMovement(movement)}
                       onToggle={() =>
                         setExpandedHistoryId((currentValue) =>
                           currentValue === movement.id ? null : movement.id,

@@ -30,7 +30,11 @@ import type {
   OperacionMutationData,
   RegistroOperacion,
 } from "@/lib/services/operaciones";
-import { construirEnvaseInventoryId } from "@/lib/utils";
+import {
+  compactarEspacios,
+  construirEnvaseInventoryId,
+  construirEnvaseTipoIdManual,
+} from "@/lib/utils";
 import {
   operacionIngresoFormSchema,
   type ActionState,
@@ -40,6 +44,9 @@ import {
 type DescargasConsoleProps = {
   registros: RegistroOperacion[];
   envases: EnvaseOption[];
+  deepLinkIntent?: "edit" | "delete";
+  deepLinkRecordId?: string;
+  deepLinkSource?: "envases";
   firestoreDisponible: boolean;
   isLoading?: boolean;
   loadError?: string | null;
@@ -407,6 +414,53 @@ function matchEnvaseOption(
   );
 }
 
+function resolveHistoricalEnvaseTypeId(
+  detail: RegistroOperacion["detalleEnvases"][number],
+  matchedEnvase: EnvaseOption | null,
+) {
+  if (matchedEnvase?.id) {
+    return matchedEnvase.id;
+  }
+
+  const envaseTipoId = compactarEspacios(detail.envaseTipoId ?? "");
+
+  if (
+    envaseTipoId &&
+    envaseTipoId !== "legacy-packaging" &&
+    envaseTipoId !== SIN_ENVASE_TIPO_ID
+  ) {
+    return envaseTipoId;
+  }
+
+  const fallbackLabel =
+    compactarEspacios(detail.envaseTipoNombre ?? "") ||
+    compactarEspacios(detail.envaseTipoCodigo ?? "") ||
+    envaseTipoId;
+
+  return fallbackLabel ? construirEnvaseTipoIdManual(fallbackLabel) : "";
+}
+
+function hasIncompleteHistoricalEnvaseDetail(
+  detail: RegistroOperacion["detalleEnvases"][number],
+) {
+  const hasEnvaseLabel =
+    compactarEspacios(detail.envaseTipoNombre ?? "") ||
+    compactarEspacios(detail.envaseTipoCodigo ?? "") ||
+    compactarEspacios(detail.envaseTipoId ?? "");
+  const envaseEstado = compactarEspacios(detail.envaseEstado ?? "");
+  const kilos = Number(detail.kilos ?? 0);
+  const cantidad = Number(detail.cantidad ?? 0);
+
+  return (
+    !hasEnvaseLabel ||
+    !envaseEstado ||
+    !Number.isFinite(kilos) ||
+    kilos < 0 ||
+    !Number.isFinite(cantidad) ||
+    cantidad <= 0
+  );
+}
+
 function buildIngresoFormSeed(
   record: RegistroOperacion | null,
   envases: EnvaseOption[],
@@ -445,20 +499,26 @@ function buildIngresoFormSeed(
     }
 
     const matchedEnvase = matchEnvaseOption(envases, detail);
+    const resolvedEnvaseTipoId = resolveHistoricalEnvaseTypeId(
+      detail,
+      matchedEnvase,
+    );
+    const fallbackName =
+      compactarEspacios(detail.envaseTipoNombre ?? "") ||
+      compactarEspacios(detail.envaseTipoCodigo ?? "") ||
+      resolvedEnvaseTipoId;
 
     return [
       {
-        inventoryId: construirEnvaseInventoryId(
-          detail.envaseTipoId,
-          detail.envaseEstado,
-          Number(detail.kilos ?? 0),
-        ),
-        envaseTipoId:
-          matchedEnvase?.id ||
-          detail.envaseTipoNombre ||
-          detail.envaseTipoCodigo ||
-          detail.envaseTipoId,
-        envaseTipoNombre: detail.envaseTipoNombre,
+        inventoryId:
+          compactarEspacios(detail.inventoryId ?? "") ||
+          construirEnvaseInventoryId(
+            resolvedEnvaseTipoId || detail.envaseTipoId,
+            detail.envaseEstado,
+            Number(detail.kilos ?? 0),
+          ),
+        envaseTipoId: resolvedEnvaseTipoId,
+        envaseTipoNombre: fallbackName,
         envaseEstado: detail.envaseEstado,
         kilos: detail.kilos,
         cantidad: detail.cantidad,
@@ -467,8 +527,10 @@ function buildIngresoFormSeed(
   });
   const envasesNoMapeados = Math.max(
     0,
-    mappedDetails.filter(
-      (detail) => !envases.some((envase) => envase.id === detail.envaseTipoId),
+    record.detalleEnvases.filter(
+      (detail) =>
+        !isGranelPlaceholderDetail(detail) &&
+        hasIncompleteHistoricalEnvaseDetail(detail),
     ).length,
   );
   const numeroCartaPorte = getRealCartaPorte(record);
@@ -1164,7 +1226,7 @@ function DateTelemetry({ records }: { records: RegistroOperacion[] }) {
                         style={{ bottom: `calc(${heightPercent}% - 0.5rem)` }}
                       />
                     </button>
-                    <span className="absolute left-1/2 top-[calc(100%-0.05rem)] hidden w-14 -translate-x-1/2 text-center text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] sm:block">
+                    <span className="absolute left-1/2 top-[calc(100%-0.05rem)] hidden w-14 -translate-x-1/2 text-center text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] min-[1020px]:block">
                       {point.axisLabel}
                     </span>
                   </div>
@@ -1177,7 +1239,7 @@ function DateTelemetry({ records }: { records: RegistroOperacion[] }) {
               <div className="pointer-events-none absolute inset-x-4 bottom-3">
                 {dayAxisMarkers.map((day) => (
                   <span
-                    className="absolute hidden w-8 -translate-x-1/2 text-center text-[10px] font-bold text-[var(--text-muted)] sm:block"
+                    className="absolute hidden w-8 -translate-x-1/2 text-center text-[10px] font-bold text-[var(--text-muted)] min-[1020px]:block"
                     key={`day-${day}`}
                     style={{
                       left: `${((day - 1) / Math.max(selectedMonthDays - 1, 1)) * 100}%`,
@@ -1348,19 +1410,37 @@ function HistorialCard({
                 <div className="mt-3 grid gap-2">
                   {record.detalleEnvases.map((detail, index) => (
                     <div
-                      className="grid gap-2 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_110px_110px]"
+                      className="grid grid-cols-2 gap-3 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] min-[1000px]:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_110px_110px] min-[1000px]:items-center"
                       key={`${record.id}-${detail.envaseTipoId}-${index}`}
                     >
-                      <span className="font-semibold text-[var(--text)]">
-                        {detail.envaseTipoNombre || SIN_ENVASE_NOMBRE}
-                      </span>
-                      <span>{detail.envaseEstado}</span>
-                      <span className="md:text-center">
-                        {formatKilos(detail.kilos)}
-                      </span>
-                      <span className="font-bold text-[var(--primary)] md:text-right">
-                        {formatNumber(detail.cantidad, 0)}
-                      </span>
+                      <div className="grid gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Envase
+                        </span>
+                        <span className="font-semibold text-[var(--text)]">
+                          {detail.envaseTipoNombre || SIN_ENVASE_NOMBRE}
+                        </span>
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Estado
+                        </span>
+                        <span>{detail.envaseEstado}</span>
+                      </div>
+                      <div className="grid gap-1 min-[1000px]:text-center">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Kg
+                        </span>
+                        <span>{formatKilos(detail.kilos)}</span>
+                      </div>
+                      <div className="grid gap-1 min-[1000px]:text-right">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Cantidad
+                        </span>
+                        <span className="font-bold text-[var(--primary)]">
+                          {formatNumber(detail.cantidad, 0)}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1451,11 +1531,15 @@ function PaginationControls({
 export function DescargasConsole({
   registros,
   envases,
+  deepLinkIntent,
+  deepLinkRecordId,
+  deepLinkSource,
   firestoreDisponible,
   isLoading = false,
   loadError = null,
   storageConfigurado,
 }: DescargasConsoleProps) {
+  const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RegistroOperacion | null>(
     null,
@@ -1472,6 +1556,7 @@ export function DescargasConsole({
     tone: "success" | "error";
     message: string;
   } | null>(null);
+  const handledDeepLinkRef = useRef<string | null>(null);
   const { campaigns } = useCampaignPeriods();
   const defaultCampaignId = useMemo(
     () => getDefaultCampaignId(campaigns),
@@ -1608,6 +1693,14 @@ export function DescargasConsole({
       ),
     [currentPage, filteredRecords],
   );
+  const deepLinkKey =
+    deepLinkSource && deepLinkIntent && deepLinkRecordId
+      ? `${deepLinkSource}:${deepLinkIntent}:${deepLinkRecordId}`
+      : "";
+
+  function clearDeepLink() {
+    router.replace("/modulos?tab=descargas", { scroll: false });
+  }
 
   useEffect(() => {
     if (
@@ -1680,12 +1773,19 @@ export function DescargasConsole({
     }));
   }
 
-  async function handleDelete(record: RegistroOperacion) {
+  async function handleDelete(
+    record: RegistroOperacion,
+    options?: { clearDeepLink?: boolean },
+  ) {
     const confirmed = window.confirm(
       `Va a eliminar la descarga ${record.producto ?? "sin producto"} del ${formatDisplayDate(record.fechaOperacion)}.`,
     );
 
     if (!confirmed) {
+      if (options?.clearDeepLink) {
+        clearDeepLink();
+      }
+
       return;
     }
 
@@ -1732,8 +1832,45 @@ export function DescargasConsole({
       });
     } finally {
       setActionPendingId(null);
+
+      if (options?.clearDeepLink) {
+        clearDeepLink();
+      }
     }
   }
+
+  useEffect(() => {
+    if (!deepLinkKey) {
+      handledDeepLinkRef.current = null;
+      return;
+    }
+
+    if (isLoading || handledDeepLinkRef.current === deepLinkKey) {
+      return;
+    }
+
+    const record = sortedRecords.find((item) => item.id === deepLinkRecordId);
+    handledDeepLinkRef.current = deepLinkKey;
+
+    if (!record) {
+      setFeedback({
+        tone: "error",
+        message: "No se encontro el ingreso solicitado para abrir desde Envases.",
+      });
+      clearDeepLink();
+      return;
+    }
+
+    setExpandedRecordId(record.id);
+
+    if (deepLinkIntent === "edit") {
+      setEditingRecord(record);
+      clearDeepLink();
+      return;
+    }
+
+    void handleDelete(record, { clearDeepLink: true });
+  }, [deepLinkIntent, deepLinkKey, deepLinkRecordId, isLoading, sortedRecords]);
 
   return (
     <>
@@ -2471,8 +2608,9 @@ function IngresoDescargaModal({
                   </div>
                   {initialSeed.envasesNoMapeados > 0 ? (
                     <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100">
-                      {initialSeed.envasesNoMapeados} Revise EL detalle de
-                      envases antes de guardar..
+                      {initialSeed.envasesNoMapeados === 1
+                        ? "Hay 1 envase con datos incompletos. Reviselo antes de guardar."
+                        : `Hay ${initialSeed.envasesNoMapeados} envases con datos incompletos. Reviselos antes de guardar.`}
                     </div>
                   ) : null}
                 </div>

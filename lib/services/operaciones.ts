@@ -1342,6 +1342,10 @@ async function crearOperacionTransaccional(
   const destinatario = compactarEspacios(input.destinatario ?? "");
   const producto = compactarEspacios(input.producto ?? input.proceso);
   const envaseMode = normalizeEnvaseMode(input.envaseMode);
+  const allowStockInsuficiente =
+    input.tipoOperacion === "egreso" &&
+    "confirmarStockInsuficiente" in input &&
+    input.confirmarStockInsuficiente === true;
   const observaciones = input.observaciones
     ? compactarEspacios(input.observaciones)
     : null;
@@ -1455,7 +1459,10 @@ async function crearOperacionTransaccional(
         for (const [inventoryId, cantidadSolicitada] of requestedByInventory) {
           const availableEntry = availabilityMap.get(inventoryId);
 
-          if (!availableEntry || availableEntry.cantidad < cantidadSolicitada) {
+          if (
+            !allowStockInsuficiente &&
+            (!availableEntry || availableEntry.cantidad < cantidadSolicitada)
+          ) {
             throw new Error(
               `Stock insuficiente para ${availableEntry?.visibleId ?? inventoryId}. Disponible: ${availableEntry?.cantidad ?? 0}, solicitado: ${cantidadSolicitada}.`
             );
@@ -1479,7 +1486,7 @@ async function crearOperacionTransaccional(
             throw new Error("El lote envasado seleccionado ya no esta disponible.");
           }
 
-          if (detail.cantidad > lot.cantidadDisponible) {
+          if (!allowStockInsuficiente && detail.cantidad > lot.cantidadDisponible) {
             throw new Error(
               `Stock insuficiente para ${lot.envaseVisibleId}. Disponible: ${lot.cantidadDisponible}, solicitado: ${detail.cantidad}.`,
             );
@@ -2568,6 +2575,7 @@ export async function actualizarOperacionEgreso(
   const destinatario = compactarEspacios(input.destinatario ?? "");
   const producto = compactarEspacios(input.producto ?? input.proceso);
   const envaseMode = normalizeEnvaseMode(input.envaseMode);
+  const allowStockInsuficiente = input.confirmarStockInsuficiente === true;
   const observaciones = input.observaciones
     ? compactarEspacios(input.observaciones)
     : null;
@@ -2775,7 +2783,10 @@ export async function actualizarOperacionEgreso(
             (availabilityEntry?.cantidad ?? 0) +
             (restoredStockByInventoryId.get(inventoryId) ?? 0);
 
-          if (disponibilidadAjustada < cantidadSolicitada) {
+          if (
+            !allowStockInsuficiente &&
+            disponibilidadAjustada < cantidadSolicitada
+          ) {
             throw new Error(
               `Stock insuficiente para ${availabilityEntry?.visibleId ?? inventoryId}. Disponible: ${disponibilidadAjustada}, solicitado: ${cantidadSolicitada}.`
             );
@@ -2837,7 +2848,7 @@ export async function actualizarOperacionEgreso(
             throw new Error("El lote envasado seleccionado ya no esta disponible.");
           }
 
-          if (detail.cantidad > lot.cantidadDisponible) {
+          if (!allowStockInsuficiente && detail.cantidad > lot.cantidadDisponible) {
             throw new Error(
               `Stock insuficiente para ${lot.envaseVisibleId}. Disponible: ${lot.cantidadDisponible}, solicitado: ${detail.cantidad}.`
             );

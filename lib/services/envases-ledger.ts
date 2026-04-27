@@ -31,9 +31,11 @@ export type LedgerMovementKind =
 export type DerivedEnvaseMovement = {
   id: string;
   sourceId: string;
+  sourceSubId: string | null;
   movementKind: LedgerMovementKind;
   recordOrigin: "descarga" | "carga" | "proceso" | "manual";
   manualOrigin: "manual_ingreso" | "manual_baja" | "manual_retiro" | null;
+  countsTowardAccount: boolean;
   cliente: string;
   envaseTipoId: string;
   envaseTipoCodigo: string;
@@ -103,6 +105,7 @@ function buildVisibleId(nombre: string, estado: string, kilos: number) {
 function buildMovementBase(params: {
   id: string;
   sourceId: string;
+  sourceSubId?: string | null;
   movementKind: LedgerMovementKind;
   cliente: string;
   envaseTipoId: string;
@@ -122,6 +125,9 @@ function buildMovementBase(params: {
   causa?: string | null;
   registroLabel: string;
   referenciaLabel?: string | null;
+  countsTowardAccount?: boolean;
+  consumptionDeltaOverride?: number;
+  deltaClientBalanceOverride?: number;
 }) {
   const inventoryId = construirEnvaseInventoryId(
     params.envaseTipoId,
@@ -132,27 +138,37 @@ function buildMovementBase(params: {
   const isBajaLike =
     params.movementKind === "baja" || params.movementKind === "retiro";
   const isReprocess = params.movementKind === "reproceso";
+  const {
+    manualOrigin,
+    sourceSubId,
+    countsTowardAccount,
+    consumptionDeltaOverride,
+    deltaClientBalanceOverride,
+    referenciaLabel,
+    ...movement
+  } = params;
 
   return {
-    ...params,
-    manualOrigin: params.manualOrigin ?? null,
+    ...movement,
+    manualOrigin: manualOrigin ?? null,
+    sourceSubId: sourceSubId ?? null,
+    countsTowardAccount: countsTowardAccount ?? true,
     inventoryId,
     visibleId: buildVisibleId(params.envaseTipoNombre, params.envaseEstado, params.kilos),
     deltaPlant: isIngreso ? params.cantidad : isReprocess ? params.cantidad : -params.cantidad,
-    deltaClientBalance: isIngreso
-      ? params.cantidad
-      : isReprocess
-        ? params.cantidad
-        : -params.cantidad,
+    deltaClientBalance:
+      deltaClientBalanceOverride ??
+      (isIngreso ? params.cantidad : isReprocess ? params.cantidad : -params.cantidad),
     consumptionDelta:
-      params.movementKind === "consumo_proceso" ||
+      consumptionDeltaOverride ??
+      (params.movementKind === "consumo_proceso" ||
       params.movementKind === "consumo_egreso_manual"
         ? params.cantidad
         : isReprocess
           ? -params.cantidad
-          : 0,
+          : 0),
     causa: isBajaLike ? params.causa ?? null : null,
-    referenciaLabel: params.referenciaLabel ?? null,
+    referenciaLabel: referenciaLabel ?? null,
   } satisfies DerivedEnvaseMovement;
 }
 
@@ -436,9 +452,13 @@ function mapProcesoDocument(
         : parsed.data.envaseKilos > 0
           ? parsed.data.envaseKilos
           : 0;
+    const salidaId = compactarEspacios(salida.id ?? "") || null;
+    const isNeutralizedConsumption =
+      salida.estadoAlmacenamiento === "reprocesado";
     const base = buildMovementBase({
       id: `proceso-${id}-${salida.id || index + 1}`,
       sourceId: id,
+      sourceSubId: salidaId,
       movementKind: "consumo_proceso",
       cliente: parsed.data.cliente,
       envaseTipoId: salida.envaseTipoId,
@@ -459,9 +479,12 @@ function mapProcesoDocument(
         parsed.data.tipoOrden === "reprocesado" ? "Reproceso" : "Proceso",
       referenciaLabel:
         parsed.data.tipoOrden === "reprocesado" ? "Reproceso" : "Proceso",
+      countsTowardAccount: !isNeutralizedConsumption,
+      consumptionDeltaOverride: isNeutralizedConsumption ? 0 : undefined,
+      deltaClientBalanceOverride: isNeutralizedConsumption ? 0 : undefined,
     });
 
-    if (salida.estadoAlmacenamiento === "reprocesado") {
+    if (isNeutralizedConsumption) {
       return [
         base,
         buildMovementBase({
@@ -471,6 +494,9 @@ function mapProcesoDocument(
           fechaMovimiento: timestampLikeToDate(salida.reprocessedAt) ?? base.fechaMovimiento,
           createdAt: timestampLikeToDate(salida.reprocessedAt) ?? base.createdAt,
           registroLabel: "Reproceso",
+          countsTowardAccount: false,
+          consumptionDeltaOverride: 0,
+          deltaClientBalanceOverride: 0,
         }),
       ];
     }

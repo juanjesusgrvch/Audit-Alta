@@ -4,7 +4,19 @@ import { ProcessModuleConsole } from "@/app/components/process-module-console";
 import { useOperationModuleData } from "@/lib/client/module-data";
 import { useProcesosModuleData } from "@/lib/client/module-data";
 
-export function ProcessModuleScreen() {
+type ProcessModuleScreenProps = {
+  deepLinkIntent?: "edit" | "delete";
+  deepLinkRecordId?: string;
+  deepLinkSource?: "envases";
+  deepLinkSubRecordId?: string;
+};
+
+export function ProcessModuleScreen({
+  deepLinkIntent,
+  deepLinkRecordId,
+  deepLinkSource,
+  deepLinkSubRecordId,
+}: ProcessModuleScreenProps) {
   const { data, error, isLoading } = useProcesosModuleData();
   const {
     data: ingresosData,
@@ -14,6 +26,10 @@ export function ProcessModuleScreen() {
   return (
     <ProcessModuleConsole
       envases={data?.envases ?? []}
+      deepLinkIntent={deepLinkIntent}
+      deepLinkRecordId={deepLinkRecordId}
+      deepLinkSource={deepLinkSource}
+      deepLinkSubRecordId={deepLinkSubRecordId}
       firestoreDisponible={data?.firestoreDisponible ?? false}
       ingresosRelacionados={ingresosData?.registros ?? []}
       isLoading={isLoading || isLoadingIngresos}

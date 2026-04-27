@@ -31,7 +31,11 @@ import {
   buildStoredProcessLots,
   type StoredProcessLot,
 } from "@/lib/shared/stored-process-lots";
-import { construirEnvaseInventoryId } from "@/lib/utils";
+import {
+  compactarEspacios,
+  construirEnvaseInventoryId,
+  construirEnvaseTipoIdManual,
+} from "@/lib/utils";
 import type {
   EnvaseOption,
   OperacionMutationData,
@@ -48,6 +52,9 @@ type CargasConsoleProps = {
   registros: RegistroOperacion[];
   relationalRecords: RegistroOperacion[];
   envases: EnvaseOption[];
+  deepLinkIntent?: "edit" | "delete";
+  deepLinkRecordId?: string;
+  deepLinkSource?: "envases";
   firestoreDisponible: boolean;
   isLoading?: boolean;
   loadError?: string | null;
@@ -125,6 +132,14 @@ type PlantStockOption = {
   envaseEstado: string;
   kilos: number;
   cantidad: number;
+};
+
+type StockShortageItem = {
+  id: string;
+  disponible: number;
+  solicitado: number;
+  faltante: number;
+  detail?: string;
 };
 
 function buildFallbackStoredLotFromSelection(
@@ -480,6 +495,53 @@ function matchEnvaseOption(
   );
 }
 
+function resolveHistoricalEnvaseTypeId(
+  detail: RegistroOperacion["detalleEnvases"][number],
+  matchedEnvase: EnvaseOption | null,
+) {
+  if (matchedEnvase?.id) {
+    return matchedEnvase.id;
+  }
+
+  const envaseTipoId = compactarEspacios(detail.envaseTipoId ?? "");
+
+  if (
+    envaseTipoId &&
+    envaseTipoId !== "legacy-packaging" &&
+    envaseTipoId !== SIN_ENVASE_TIPO_ID
+  ) {
+    return envaseTipoId;
+  }
+
+  const fallbackLabel =
+    compactarEspacios(detail.envaseTipoNombre ?? "") ||
+    compactarEspacios(detail.envaseTipoCodigo ?? "") ||
+    envaseTipoId;
+
+  return fallbackLabel ? construirEnvaseTipoIdManual(fallbackLabel) : "";
+}
+
+function hasIncompleteHistoricalEnvaseDetail(
+  detail: RegistroOperacion["detalleEnvases"][number],
+) {
+  const hasEnvaseLabel =
+    compactarEspacios(detail.envaseTipoNombre ?? "") ||
+    compactarEspacios(detail.envaseTipoCodigo ?? "") ||
+    compactarEspacios(detail.envaseTipoId ?? "");
+  const envaseEstado = compactarEspacios(detail.envaseEstado ?? "");
+  const kilos = Number(detail.kilos ?? 0);
+  const cantidad = Number(detail.cantidad ?? 0);
+
+  return (
+    !hasEnvaseLabel ||
+    !envaseEstado ||
+    !Number.isFinite(kilos) ||
+    kilos < 0 ||
+    !Number.isFinite(cantidad) ||
+    cantidad <= 0
+  );
+}
+
 function buildCargaFormSeed(
   record: RegistroOperacion | null,
   envases: EnvaseOption[],
@@ -502,6 +564,7 @@ function buildCargaFormSeed(
         envaseTipoId: SIN_ENVASE_TIPO_ID,
         envaseEstado: SIN_ENVASE_ESTADO,
         envaseMode: "granel",
+        confirmarStockInsuficiente: false,
         detalleEnvases: [],
         loteEnvasadoDetalles: [],
         observaciones: "",
@@ -515,20 +578,26 @@ function buildCargaFormSeed(
 
   const mappedDetails = record.detalleEnvases.flatMap((detail) => {
     const matchedEnvase = matchEnvaseOption(envases, detail);
+    const resolvedEnvaseTipoId = resolveHistoricalEnvaseTypeId(
+      detail,
+      matchedEnvase,
+    );
+    const fallbackName =
+      compactarEspacios(detail.envaseTipoNombre ?? "") ||
+      compactarEspacios(detail.envaseTipoCodigo ?? "") ||
+      resolvedEnvaseTipoId;
 
     return [
       {
-        inventoryId: construirEnvaseInventoryId(
-          detail.envaseTipoId,
-          detail.envaseEstado,
-          Number(detail.kilos ?? 0),
-        ),
-        envaseTipoId:
-          matchedEnvase?.id ||
-          detail.envaseTipoNombre ||
-          detail.envaseTipoCodigo ||
-          detail.envaseTipoId,
-        envaseTipoNombre: detail.envaseTipoNombre,
+        inventoryId:
+          compactarEspacios(detail.inventoryId ?? "") ||
+          construirEnvaseInventoryId(
+            resolvedEnvaseTipoId || detail.envaseTipoId,
+            detail.envaseEstado,
+            Number(detail.kilos ?? 0),
+          ),
+        envaseTipoId: resolvedEnvaseTipoId,
+        envaseTipoNombre: fallbackName,
         envaseEstado: detail.envaseEstado,
         kilos: detail.kilos,
         cantidad: detail.cantidad,
@@ -538,8 +607,8 @@ function buildCargaFormSeed(
 
   const envasesNoMapeados = Math.max(
     0,
-    mappedDetails.filter(
-      (detail) => !envases.some((envase) => envase.id === detail.envaseTipoId),
+    record.detalleEnvases.filter((detail) =>
+      hasIncompleteHistoricalEnvaseDetail(detail),
     ).length,
   );
 
@@ -581,6 +650,7 @@ function buildCargaFormSeed(
       envaseTipoId: mappedDetails[0]?.envaseTipoId ?? SIN_ENVASE_TIPO_ID,
       envaseEstado: mappedDetails[0]?.envaseEstado ?? SIN_ENVASE_ESTADO,
       envaseMode: record.envaseMode ?? "granel",
+      confirmarStockInsuficiente: false,
       detalleEnvases: mappedDetails,
       loteEnvasadoDetalles: storedLotSelections,
       observaciones: record.observaciones ?? "",
@@ -1208,7 +1278,7 @@ function DateTelemetry({ records }: { records: RegistroOperacion[] }) {
                         style={{ bottom: `calc(${heightPercent}% - 0.5rem)` }}
                       />
                     </button>
-                    <span className="absolute left-1/2 top-[calc(100%-0.05rem)] hidden w-14 -translate-x-1/2 text-center text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] sm:block">
+                    <span className="absolute left-1/2 top-[calc(100%-0.05rem)] hidden w-14 -translate-x-1/2 text-center text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] min-[1020px]:block">
                       {point.axisLabel}
                     </span>
                   </div>
@@ -1221,7 +1291,7 @@ function DateTelemetry({ records }: { records: RegistroOperacion[] }) {
               <div className="pointer-events-none absolute inset-x-4 bottom-3">
                 {dayAxisMarkers.map((day) => (
                   <span
-                    className="absolute hidden w-8 -translate-x-1/2 text-center text-[10px] font-bold text-[var(--text-muted)] sm:block"
+                    className="absolute hidden w-8 -translate-x-1/2 text-center text-[10px] font-bold text-[var(--text-muted)] min-[1020px]:block"
                     key={`day-${day}`}
                     style={{
                       left: `${((day - 1) / Math.max(selectedMonthDays - 1, 1)) * 100}%`,
@@ -1501,18 +1571,33 @@ function HistorialCard({
                 <div className="mt-3 grid gap-2">
                   {record.loteEnvasadoDetalles.map((detail, index) => (
                     <div
-                      className="grid gap-2 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] md:grid-cols-[minmax(0,1.6fr)_110px_120px]"
+                      className="grid grid-cols-2 gap-3 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] min-[1000px]:grid-cols-[minmax(0,1.6fr)_110px_120px] min-[1000px]:items-center"
                       key={`${record.id}-${detail.storedItemId}-${index}`}
                     >
-                      <span className="font-semibold text-[var(--text)]">
+                      <div className="col-span-2 grid gap-1 min-[1000px]:col-span-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Lote
+                        </span>
+                        <span className="font-semibold text-[var(--text)]">
                         {detail.envaseVisibleId} · {detail.proceso}
-                      </span>
-                      <span className="md:text-center">
+                        </span>
+                      </div>
+                      <div className="grid gap-1 min-[1000px]:text-center">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Kg
+                        </span>
+                        <span>
                         {formatKilos(detail.kilos)}
-                      </span>
-                      <span className="font-bold text-[var(--primary)] md:text-right">
+                        </span>
+                      </div>
+                      <div className="grid gap-1 min-[1000px]:text-right">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Cantidad
+                        </span>
+                        <span className="font-bold text-[var(--primary)]">
                         {formatNumber(detail.cantidad, 0)}
-                      </span>
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1520,19 +1605,39 @@ function HistorialCard({
                 <div className="mt-3 grid gap-2">
                   {record.detalleEnvases.map((detail, index) => (
                     <div
-                      className="grid gap-2 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_110px_110px]"
+                      className="grid grid-cols-2 gap-3 rounded-xl bg-[var(--surface)]/70 px-3 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)] min-[1000px]:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_110px_110px] min-[1000px]:items-center"
                       key={`${record.id}-${detail.envaseTipoId}-${index}`}
                     >
-                      <span className="font-semibold text-[var(--text)]">
+                      <div className="grid gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Envase
+                        </span>
+                        <span className="font-semibold text-[var(--text)]">
                         {detail.envaseTipoNombre || SIN_ENVASE_NOMBRE}
-                      </span>
-                      <span>{detail.envaseEstado}</span>
-                      <span className="md:text-center">
+                        </span>
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Estado
+                        </span>
+                        <span>{detail.envaseEstado}</span>
+                      </div>
+                      <div className="grid gap-1 min-[1000px]:text-center">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Kg
+                        </span>
+                        <span>
                         {formatKilos(detail.kilos)}
-                      </span>
-                      <span className="font-bold text-[var(--primary)] md:text-right">
+                        </span>
+                      </div>
+                      <div className="grid gap-1 min-[1000px]:text-right">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] min-[1000px]:hidden">
+                          Cantidad
+                        </span>
+                        <span className="font-bold text-[var(--primary)]">
                         {formatNumber(detail.cantidad, 0)}
-                      </span>
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1562,11 +1667,15 @@ export function CargasConsole({
   registros,
   relationalRecords,
   envases,
+  deepLinkIntent,
+  deepLinkRecordId,
+  deepLinkSource,
   firestoreDisponible,
   isLoading = false,
   loadError = null,
   storageConfigurado,
 }: CargasConsoleProps) {
+  const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RegistroOperacion | null>(
     null,
@@ -1583,6 +1692,7 @@ export function CargasConsole({
     tone: "success" | "error";
     message: string;
   } | null>(null);
+  const handledDeepLinkRef = useRef<string | null>(null);
   const { campaigns } = useCampaignPeriods();
   const defaultCampaignId = useMemo(
     () => getDefaultCampaignId(campaigns),
@@ -1781,6 +1891,14 @@ export function CargasConsole({
       ),
     [currentPage, filteredRecords],
   );
+  const deepLinkKey =
+    deepLinkSource && deepLinkIntent && deepLinkRecordId
+      ? `${deepLinkSource}:${deepLinkIntent}:${deepLinkRecordId}`
+      : "";
+
+  function clearDeepLink() {
+    router.replace("/modulos?tab=cargas", { scroll: false });
+  }
 
   useEffect(() => {
     if (
@@ -1859,12 +1977,19 @@ export function CargasConsole({
     }));
   }
 
-  async function handleDelete(record: RegistroOperacion) {
+  async function handleDelete(
+    record: RegistroOperacion,
+    options?: { clearDeepLink?: boolean },
+  ) {
     const confirmed = window.confirm(
       `Va a eliminar la carga ${record.producto ?? "sin producto"} del ${formatDisplayDate(record.fechaOperacion)}.`,
     );
 
     if (!confirmed) {
+      if (options?.clearDeepLink) {
+        clearDeepLink();
+      }
+
       return;
     }
 
@@ -1911,8 +2036,45 @@ export function CargasConsole({
       });
     } finally {
       setActionPendingId(null);
+
+      if (options?.clearDeepLink) {
+        clearDeepLink();
+      }
     }
   }
+
+  useEffect(() => {
+    if (!deepLinkKey) {
+      handledDeepLinkRef.current = null;
+      return;
+    }
+
+    if (isLoading || handledDeepLinkRef.current === deepLinkKey) {
+      return;
+    }
+
+    const record = sortedRecords.find((item) => item.id === deepLinkRecordId);
+    handledDeepLinkRef.current = deepLinkKey;
+
+    if (!record) {
+      setFeedback({
+        tone: "error",
+        message: "No se encontro la carga solicitada para abrir desde Envases.",
+      });
+      clearDeepLink();
+      return;
+    }
+
+    setExpandedRecordId(record.id);
+
+    if (deepLinkIntent === "edit") {
+      setEditingRecord(record);
+      clearDeepLink();
+      return;
+    }
+
+    void handleDelete(record, { clearDeepLink: true });
+  }, [deepLinkIntent, deepLinkKey, deepLinkRecordId, isLoading, sortedRecords]);
 
   return (
     <>
@@ -2252,6 +2414,90 @@ function ModalAutocompleteField({
   );
 }
 
+function StockShortageConfirmModal({
+  items,
+  isPending,
+  onCancel,
+  onConfirm,
+}: {
+  items: StockShortageItem[];
+  isPending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="modal-overlay fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+      <section className="modal-shell w-full max-w-3xl rounded-2xl bg-[var(--modal-surface)] text-[var(--modal-ink)] ring-1 ring-[rgba(226,232,240,0.7)] backdrop-blur-2xl">
+        <div className="border-b border-[var(--modal-line)] px-8 py-7">
+          <h3 className="font-display text-3xl font-bold text-[var(--modal-ink)]">
+            Confirmar stock insuficiente
+          </h3>
+          <p className="mt-2 text-sm text-[var(--modal-muted)]">
+            La carga supera el stock disponible en algunos envases. Puede
+            cancelar para ajustar el detalle o guardar igual para registrar la
+            diferencia.
+          </p>
+        </div>
+
+        <div className="grid gap-4 px-8 py-7">
+          <div className="overflow-hidden rounded-2xl border border-[var(--modal-line)]">
+            <div className="grid grid-cols-[minmax(0,1.6fr)_110px_110px_110px] gap-3 bg-slate-50 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+              <span>ID</span>
+              <span className="text-right">Disponible</span>
+              <span className="text-right">Solicitado</span>
+              <span className="text-right">Faltante</span>
+            </div>
+            <div className="grid gap-3 px-4 py-4">
+              {items.map((item) => (
+                <div
+                  className="grid grid-cols-[minmax(0,1.6fr)_110px_110px_110px] gap-3 rounded-2xl bg-white px-4 py-4 text-sm text-[var(--modal-ink)] ring-1 ring-[var(--modal-line)]"
+                  key={item.id}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{item.id}</p>
+                    {item.detail ? (
+                      <p className="mt-1 text-xs text-[var(--modal-muted)]">
+                        {item.detail}
+                      </p>
+                    ) : null}
+                  </div>
+                  <span className="text-right font-semibold text-[var(--modal-muted)]">
+                    {formatNumber(item.disponible, 0)}
+                  </span>
+                  <span className="text-right font-semibold text-[var(--modal-ink)]">
+                    {formatNumber(item.solicitado, 0)}
+                  </span>
+                  <span className="text-right font-black text-red-700">
+                    {formatNumber(item.faltante, 0)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-4 border-t border-[var(--modal-line)] px-8 py-6">
+          <button
+            className="rounded-xl px-6 py-3 text-xs font-bold text-[var(--modal-muted)] hover:bg-slate-100 hover:text-[var(--modal-ink)]"
+            onClick={onCancel}
+            type="button"
+          >
+            Cancelar
+          </button>
+          <button
+            className="rounded-xl bg-amber-500 px-8 py-3 text-xs font-black text-slate-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
+            onClick={onConfirm}
+            type="button"
+          >
+            {isPending ? "Guardando..." : "Guardar igual"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function CargaModal({
   envases,
   onClose,
@@ -2272,6 +2518,9 @@ function CargaModal({
   const [serverError, setServerError] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [pendingSubmitValues, setPendingSubmitValues] =
+    useState<OperacionEgresoFormInput | null>(null);
+  const [stockShortages, setStockShortages] = useState<StockShortageItem[]>([]);
   const todayValue = formatDateKey(new Date());
   const initialSeed = useMemo(
     () => buildCargaFormSeed(recordToEdit, envases, todayValue),
@@ -2466,6 +2715,175 @@ function CargaModal({
     [envases],
   );
 
+  function getStockShortages(values: OperacionEgresoFormInput) {
+    if (envaseMode === "manual") {
+      const requestedByInventory = new Map<
+        string,
+        {
+          disponible: number;
+          solicitado: number;
+          id: string;
+        }
+      >();
+
+      for (const detail of values.detalleEnvases ?? []) {
+        const inventoryId = compactarEspacios(detail.inventoryId ?? "");
+        const availableEntry =
+          manualStockOptions.find((entry) => entry.inventoryId === inventoryId) ??
+          null;
+        const rowKey =
+          inventoryId ||
+          `${detail.envaseTipoId}__${detail.envaseEstado}__${detail.kilos}`;
+        const currentValue = requestedByInventory.get(rowKey) ?? {
+          disponible: Number(availableEntry?.cantidad ?? 0),
+          solicitado: 0,
+          id:
+            availableEntry?.visibleId ||
+            `${detail.envaseTipoNombre || detail.envaseTipoId} | ${detail.envaseEstado} | ${Number(detail.kilos ?? 0)} kg`,
+        };
+
+        currentValue.solicitado += Number(detail.cantidad ?? 0);
+        requestedByInventory.set(rowKey, currentValue);
+      }
+
+      return [...requestedByInventory.values()]
+        .filter((item) => item.solicitado > item.disponible)
+        .map((item) => ({
+          id: item.id,
+          disponible: item.disponible,
+          solicitado: item.solicitado,
+          faltante: item.solicitado - item.disponible,
+        }));
+    }
+
+    const requestedByLot = new Map<
+      string,
+      {
+        disponible: number;
+        solicitado: number;
+        id: string;
+        detail: string;
+      }
+    >();
+
+    for (const selection of storedLotSelections) {
+      const selectedLot =
+        selectableStoredLots.find(
+          (lot) => lot.storedItemId === selection.storedItemId,
+        ) ?? null;
+      const currentValue = requestedByLot.get(selection.storedItemId) ?? {
+        disponible: Number(selectedLot?.cantidadDisponible ?? 0),
+        solicitado: 0,
+        id: selection.envaseVisibleId,
+        detail: `${selection.proceso} - ${selection.cliente}`,
+      };
+
+      currentValue.solicitado += Number(selection.cantidad ?? 0);
+      requestedByLot.set(selection.storedItemId, currentValue);
+    }
+
+    return [...requestedByLot.values()]
+      .filter((item) => item.solicitado > item.disponible)
+      .map((item) => ({
+        id: item.id,
+        disponible: item.disponible,
+        solicitado: item.solicitado,
+        faltante: item.solicitado - item.disponible,
+        detail: item.detail,
+      }));
+  }
+
+  function submitCarga(
+    values: OperacionEgresoFormInput,
+    confirmarStockInsuficiente: boolean,
+  ) {
+    setServerError(null);
+
+    startTransition(async () => {
+      try {
+        const requestBody = new FormData();
+        const detalle =
+          envaseMode === "manual" ? (values.detalleEnvases ?? []) : [];
+        const loteEnvasadoDetalles =
+          envaseMode === "manual" ? [] : storedLotSelections;
+        const totalCantidad =
+          envaseMode === "manual"
+            ? detalle.reduce(
+                (total, item) => total + Number(item.cantidad ?? 0),
+                0,
+              )
+            : loteEnvasadoDetalles.reduce(
+                (total, item) => total + Number(item.cantidad ?? 0),
+                0,
+              );
+        const firstDetail =
+          envaseMode === "manual" ? detalle[0] : loteEnvasadoDetalles[0];
+
+        if (recordToEdit) {
+          requestBody.set("operacionId", recordToEdit.id);
+        }
+
+        requestBody.set("fechaOperacion", values.fechaOperacion);
+        requestBody.set("numeroCartaPorte", values.numeroCartaPorte);
+        requestBody.set("cliente", values.cliente);
+        requestBody.set("producto", values.producto?.trim() ?? "");
+        requestBody.set("proceso", values.proceso);
+        requestBody.set("proveedor", values.proveedor);
+        requestBody.set("procedencia", values.proveedor);
+        requestBody.set("destinatario", values.destinatario?.trim() ?? "");
+        requestBody.set("kilos", String(values.kilos ?? 0));
+        requestBody.set("cantidadEnvases", String(totalCantidad));
+        requestBody.set(
+          "envaseTipoId",
+          firstDetail?.envaseTipoId || SIN_ENVASE_TIPO_ID,
+        );
+        requestBody.set(
+          "envaseEstado",
+          firstDetail?.envaseEstado || SIN_ENVASE_ESTADO,
+        );
+        requestBody.set("envaseMode", envaseMode);
+        requestBody.set(
+          "confirmarStockInsuficiente",
+          confirmarStockInsuficiente ? "true" : "false",
+        );
+        requestBody.set("detalleEnvases", JSON.stringify(detalle));
+        requestBody.set(
+          "loteEnvasadoDetalles",
+          JSON.stringify(loteEnvasadoDetalles),
+        );
+        requestBody.set("observaciones", values.observaciones ?? "");
+
+        if (pdfFile) {
+          requestBody.set("cartaPortePdf", pdfFile);
+        }
+
+        const response = await fetchWithFirebaseAuth("/api/cargas", {
+          method: recordToEdit ? "PATCH" : "POST",
+          body: requestBody,
+        });
+        const result =
+          (await response.json()) as ActionState<OperacionMutationData>;
+
+        if (!result.ok) {
+          setServerError(result.message);
+          return;
+        }
+
+        setPendingSubmitValues(null);
+        setStockShortages([]);
+        refreshAllModuleData();
+        router.refresh();
+        onSuccess(result.message);
+      } catch (error) {
+        setServerError(
+          error instanceof Error
+            ? error.message
+            : `No fue posible ${recordToEdit ? "actualizar" : "registrar"} la carga.`,
+        );
+      }
+    });
+  }
+
   useEffect(() => {
     fetchWithFirebaseAuth("/api/envases")
       .then((res) => res.json())
@@ -2528,6 +2946,8 @@ function CargaModal({
     setEnvaseMode(initialSeed.envaseMode);
     setStoredLotSelections(initialSeed.storedLotSelections);
     setServerError(null);
+    setPendingSubmitValues(null);
+    setStockShortages([]);
     setPdfFile(null);
     setFileInputKey((currentValue) => currentValue + 1);
     form.reset(initialSeed.values);
@@ -2655,6 +3075,9 @@ function CargaModal({
   ]);
 
   const handleSubmit = form.handleSubmit((values) => {
+    setPendingSubmitValues(null);
+    setStockShortages([]);
+
     if (!values.producto?.trim()) {
       form.setError("producto", {
         type: "manual",
@@ -2676,90 +3099,22 @@ function CargaModal({
       return;
     }
 
-    setServerError(null);
+    const shortages = getStockShortages(values);
 
-    startTransition(async () => {
-      try {
-        const requestBody = new FormData();
-        const detalle =
-          envaseMode === "manual" ? (values.detalleEnvases ?? []) : [];
-        const loteEnvasadoDetalles =
-          envaseMode === "manual" ? [] : storedLotSelections;
-        const totalCantidad =
-          envaseMode === "manual"
-            ? detalle.reduce(
-                (total, item) => total + Number(item.cantidad ?? 0),
-                0,
-              )
-            : loteEnvasadoDetalles.reduce(
-                (total, item) => total + Number(item.cantidad ?? 0),
-                0,
-              );
-        const firstDetail =
-          envaseMode === "manual" ? detalle[0] : loteEnvasadoDetalles[0];
+    if (shortages.length > 0) {
+      setPendingSubmitValues(values);
+      setStockShortages(shortages);
+      setServerError(null);
+      return;
+    }
 
-        if (recordToEdit) {
-          requestBody.set("operacionId", recordToEdit.id);
-        }
-
-        requestBody.set("fechaOperacion", values.fechaOperacion);
-        requestBody.set("numeroCartaPorte", values.numeroCartaPorte);
-        requestBody.set("cliente", values.cliente);
-        requestBody.set("producto", values.producto?.trim() ?? "");
-        requestBody.set("proceso", values.proceso);
-        requestBody.set("proveedor", values.proveedor);
-        requestBody.set("procedencia", values.proveedor);
-        requestBody.set("destinatario", values.destinatario?.trim() ?? "");
-        requestBody.set("kilos", String(values.kilos ?? 0));
-        requestBody.set("cantidadEnvases", String(totalCantidad));
-        requestBody.set(
-          "envaseTipoId",
-          firstDetail?.envaseTipoId || SIN_ENVASE_TIPO_ID,
-        );
-        requestBody.set(
-          "envaseEstado",
-          firstDetail?.envaseEstado || SIN_ENVASE_ESTADO,
-        );
-        requestBody.set("envaseMode", envaseMode);
-        requestBody.set("detalleEnvases", JSON.stringify(detalle));
-        requestBody.set(
-          "loteEnvasadoDetalles",
-          JSON.stringify(loteEnvasadoDetalles),
-        );
-        requestBody.set("observaciones", values.observaciones ?? "");
-
-        if (pdfFile) {
-          requestBody.set("cartaPortePdf", pdfFile);
-        }
-
-        const response = await fetchWithFirebaseAuth("/api/cargas", {
-          method: recordToEdit ? "PATCH" : "POST",
-          body: requestBody,
-        });
-        const result =
-          (await response.json()) as ActionState<OperacionMutationData>;
-
-        if (!result.ok) {
-          setServerError(result.message);
-          return;
-        }
-
-        refreshAllModuleData();
-        router.refresh();
-        onSuccess(result.message);
-      } catch (error) {
-        setServerError(
-          error instanceof Error
-            ? error.message
-            : `No fue posible ${recordToEdit ? "actualizar" : "registrar"} la carga.`,
-        );
-      }
-    });
+    submitCarga(values, false);
   });
 
   return (
-    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <section className="modal-shell max-h-[94vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-[var(--modal-surface)] text-[var(--modal-ink)] ring-1 ring-[rgba(226,232,240,0.7)] backdrop-blur-2xl">
+    <>
+      <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <section className="modal-shell max-h-[94vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-[var(--modal-surface)] text-[var(--modal-ink)] ring-1 ring-[rgba(226,232,240,0.7)] backdrop-blur-2xl">
         <div className="modal-topbar flex items-start justify-between gap-6 border-b border-[var(--modal-line)] px-8 py-7">
           <div>
             <h2 className="font-display text-3xl font-bold text-[var(--modal-ink)]">
@@ -2944,8 +3299,9 @@ function CargaModal({
 
                 {initialSeed.envasesNoMapeados > 0 ? (
                   <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 ring-1 ring-amber-100">
-                    {initialSeed.envasesNoMapeados} Revise EL detalle de envases
-                    antes de guardar.
+                    {initialSeed.envasesNoMapeados === 1
+                      ? "Hay 1 envase con datos incompletos. Reviselo antes de guardar."
+                      : `Hay ${initialSeed.envasesNoMapeados} envases con datos incompletos. Reviselos antes de guardar.`}
                   </div>
                 ) : null}
               </ModalField>
@@ -2989,11 +3345,6 @@ function CargaModal({
                   {fields.map((field, index) => {
                     const selectedInventoryId =
                       form.watch(`detalleEnvases.${index}.inventoryId`) ?? "";
-                    const currentStockEntry =
-                      manualStockOptions.find(
-                        (entry) => entry.inventoryId === selectedInventoryId,
-                      ) ?? null;
-                    const maxStock = currentStockEntry?.cantidad ?? 0;
 
                     return (
                       <div
@@ -3083,18 +3434,11 @@ function CargaModal({
                           <input
                             className="modal-field"
                             min="1"
-                            max={maxStock > 0 ? maxStock : undefined}
                             step="1"
                             type="number"
-                            {...form.register(
-                              `detalleEnvases.${index}.cantidad`,
-                              {
-                                valueAsNumber: true,
-                                validate: (val: number) =>
-                                  val <= maxStock ||
-                                  `Stock insuficiente (Max: ${maxStock})`,
-                              },
-                            )}
+                            {...form.register(`detalleEnvases.${index}.cantidad`, {
+                              valueAsNumber: true,
+                            })}
                           />
                         </label>
                         <div className="flex items-end">
@@ -3247,7 +3591,6 @@ function CargaModal({
                           Cant. envases
                           <input
                             className="modal-field"
-                            max={maxCantidad > 0 ? maxCantidad : undefined}
                             min="1"
                             step="1"
                             type="number"
@@ -3421,7 +3764,28 @@ function CargaModal({
             </button>
           </div>
         </form>
-      </section>
-    </div>
+        </section>
+      </div>
+
+      {stockShortages.length > 0 ? (
+        <StockShortageConfirmModal
+          isPending={isPending}
+          items={stockShortages}
+          onCancel={() => {
+            setPendingSubmitValues(null);
+            setStockShortages([]);
+          }}
+          onConfirm={() => {
+            if (!pendingSubmitValues) {
+              return;
+            }
+
+            const nextValues = pendingSubmitValues;
+            setStockShortages([]);
+            submitCarga(nextValues, true);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

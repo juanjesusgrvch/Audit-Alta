@@ -18,12 +18,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }
 
   if (status === "unauthenticated") {
-    return (
-      <LoginPanel
-        description="La consola unificada de modulos necesita una sesion valida antes de leer o escribir en Firebase."
-        title="Acceso a modulos"
-      />
-    );
+    return <LoginPanel />;
   }
 
   return children;

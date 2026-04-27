@@ -433,6 +433,7 @@ export const operacionIngresoFormSchema =
 export const operacionEgresoFormSchema =
   operacionMercaderiaCamposFormSchema.extend({
     tipoOperacion: z.literal("egreso"),
+    confirmarStockInsuficiente: z.coerce.boolean().optional().default(false),
   });
 
 export const operacionMercaderiaFormSchema = z.discriminatedUnion(

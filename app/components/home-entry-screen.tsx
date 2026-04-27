@@ -25,10 +25,5 @@ export function HomeEntryScreen() {
     );
   }
 
-  return (
-    <LoginPanel
-      description="Ingresa con tu cuenta para abrir la consola de modulos."
-      title="Stock-Alta"
-    />
-  );
+  return <LoginPanel />;
 }

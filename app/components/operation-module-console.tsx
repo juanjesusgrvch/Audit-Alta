@@ -10,6 +10,9 @@ type OperationModuleConsoleProps = {
   registros: RegistroOperacion[];
   relationalRecords: RegistroOperacion[];
   envases: EnvaseOption[];
+  deepLinkIntent?: "edit" | "delete";
+  deepLinkRecordId?: string;
+  deepLinkSource?: "envases";
   firestoreDisponible: boolean;
   isLoading?: boolean;
   loadError?: string | null;
@@ -21,6 +24,9 @@ export function OperationModuleConsole({
   registros,
   relationalRecords,
   envases,
+  deepLinkIntent,
+  deepLinkRecordId,
+  deepLinkSource,
   firestoreDisponible,
   isLoading = false,
   loadError = null,
@@ -31,6 +37,9 @@ export function OperationModuleConsole({
       <DescargasConsole
         envases={envases}
         firestoreDisponible={firestoreDisponible}
+        deepLinkIntent={deepLinkIntent}
+        deepLinkRecordId={deepLinkRecordId}
+        deepLinkSource={deepLinkSource}
         isLoading={isLoading}
         loadError={loadError}
         registros={registros}
@@ -43,6 +52,9 @@ export function OperationModuleConsole({
     <CargasConsole
       envases={envases}
       firestoreDisponible={firestoreDisponible}
+      deepLinkIntent={deepLinkIntent}
+      deepLinkRecordId={deepLinkRecordId}
+      deepLinkSource={deepLinkSource}
       isLoading={isLoading}
       loadError={loadError}
       relationalRecords={relationalRecords}

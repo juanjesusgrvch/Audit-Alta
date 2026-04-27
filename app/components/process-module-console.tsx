@@ -56,6 +56,10 @@ type ProcessModuleConsoleProps = {
   registros: RegistroProceso[];
   ingresosRelacionados: RegistroOperacion[];
   envases: EnvaseOption[];
+  deepLinkIntent?: "edit" | "delete";
+  deepLinkRecordId?: string;
+  deepLinkSource?: "envases";
+  deepLinkSubRecordId?: string;
   firestoreDisponible: boolean;
   isLoading?: boolean;
   loadError?: string | null;
@@ -854,10 +858,15 @@ export function ProcessModuleConsole({
   registros,
   ingresosRelacionados,
   envases,
+  deepLinkIntent,
+  deepLinkRecordId,
+  deepLinkSource,
+  deepLinkSubRecordId,
   firestoreDisponible,
   isLoading = false,
   loadError = null,
 }: ProcessModuleConsoleProps) {
+  const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RegistroProceso | null>(
     null,
@@ -876,6 +885,7 @@ export function ProcessModuleConsole({
     tone: "error" | "success";
     message: string;
   } | null>(null);
+  const handledDeepLinkRef = useRef<string | null>(null);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [cargaRecords, setCargaRecords] = useState<RegistroOperacion[]>([]);
   const { campaigns } = useCampaignPeriods();
@@ -963,6 +973,14 @@ export function ProcessModuleConsole({
     () => [...registros].sort(compareRecordsDesc),
     [registros],
   );
+  const deepLinkKey =
+    deepLinkSource && deepLinkIntent && deepLinkRecordId
+      ? `${deepLinkSource}:${deepLinkIntent}:${deepLinkRecordId}:${deepLinkSubRecordId ?? ""}`
+      : "";
+
+  function clearDeepLink() {
+    router.replace("/modulos?tab=procesos", { scroll: false });
+  }
   const searchSuggestions = useMemo(
     () =>
       uniqueValues([
@@ -1135,6 +1153,10 @@ export function ProcessModuleConsole({
     (currentPage - 1) * REGISTROS_POR_PAGINA,
     currentPage * REGISTROS_POR_PAGINA,
   );
+  const allStoredItems = useMemo(
+    () => buildStoredItems(sortedRecords, cargaRecords),
+    [cargaRecords, sortedRecords],
+  );
   const storedItems = useMemo(
     () => buildStoredItems(filteredRecords, cargaRecords),
     [cargaRecords, filteredRecords],
@@ -1283,6 +1305,7 @@ export function ProcessModuleConsole({
   async function handleStoredItemAction(
     item: ProcesoStoredItem,
     accion: "eliminar_salida" | "reprocesar_salida",
+    options?: { clearDeepLink?: boolean },
   ) {
     const actionLabel =
       accion === "reprocesar_salida" ? "reprocesar" : "eliminar";
@@ -1291,6 +1314,10 @@ export function ProcessModuleConsole({
     );
 
     if (!confirmed) {
+      if (options?.clearDeepLink) {
+        clearDeepLink();
+      }
+
       return;
     }
 
@@ -1327,8 +1354,82 @@ export function ProcessModuleConsole({
       });
     } finally {
       setPendingActionId(null);
+
+      if (options?.clearDeepLink) {
+        clearDeepLink();
+      }
     }
   }
+
+  useEffect(() => {
+    if (!deepLinkKey) {
+      handledDeepLinkRef.current = null;
+      return;
+    }
+
+    if (isLoading || handledDeepLinkRef.current === deepLinkKey) {
+      return;
+    }
+
+    const record = sortedRecords.find((item) => item.id === deepLinkRecordId);
+    handledDeepLinkRef.current = deepLinkKey;
+
+    if (!record) {
+      setFeedback({
+        tone: "error",
+        message: "No se encontro el proceso solicitado para abrir desde Envases.",
+      });
+      clearDeepLink();
+      return;
+    }
+
+    setExpandedRecordId(record.id);
+
+    if (deepLinkIntent === "edit") {
+      setEditingRecord(record);
+      clearDeepLink();
+      return;
+    }
+
+    if (!deepLinkSubRecordId) {
+      setEditingRecord(record);
+      setFeedback({
+        tone: "error",
+        message:
+          "Esta salida heredada no tiene un identificador individual. Abrimos el proceso para revisarla.",
+      });
+      clearDeepLink();
+      return;
+    }
+
+    const storedItem = allStoredItems.find(
+      (item) =>
+        item.procesoId === record.id && item.salidaId === deepLinkSubRecordId,
+    );
+
+    if (!storedItem) {
+      setFeedback({
+        tone: "error",
+        message:
+          "No se encontro la salida almacenada solicitada para eliminar desde Envases.",
+      });
+      clearDeepLink();
+      return;
+    }
+
+    setExpandedStoredItemId(storedItem.id);
+    void handleStoredItemAction(storedItem, "eliminar_salida", {
+      clearDeepLink: true,
+    });
+  }, [
+    allStoredItems,
+    deepLinkIntent,
+    deepLinkKey,
+    deepLinkRecordId,
+    deepLinkSubRecordId,
+    isLoading,
+    sortedRecords,
+  ]);
 
   const kilosNatural = filteredIngresos.reduce(
     (total, record) => total + record.kilos,
