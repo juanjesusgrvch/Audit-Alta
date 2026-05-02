@@ -31,6 +31,10 @@ import {
   resolveCampaignPeriod,
   useCampaignPeriods,
 } from "@/lib/client/campaign-periods";
+import {
+  readModuleUiState,
+  writeModuleUiState,
+} from "@/lib/client/module-ui-state";
 import { refreshAllModuleData } from "@/lib/client/module-data";
 import { buildStoredProcessLots } from "@/lib/shared/stored-process-lots";
 import { syncRelationalAutoFilledFields } from "@/lib/client/relational-autofill";
@@ -43,7 +47,11 @@ import type {
   ProcesoStoredItem,
   RegistroProceso,
 } from "@/lib/services/procesos";
-import { compactarEspacios, construirEnvaseInventoryId } from "@/lib/utils";
+import {
+  compactarEspacios,
+  construirEnvaseInventoryId,
+  fechaIsoLocalToDate,
+} from "@/lib/utils";
 import {
   procesoRegistroFormSchema,
   type ActionState,
@@ -75,6 +83,11 @@ type ProcessFilters = {
   proceso: string;
   query: string;
   to: string;
+};
+
+type ProcessUiState = {
+  filters: ProcessFilters;
+  selectedCampaignId: string | null;
 };
 
 type RelationalFieldKey = "cliente" | "procedencia" | "producto" | "proceso";
@@ -881,6 +894,7 @@ export function ProcessModuleConsole({
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     null,
   );
+  const [isPersistenceReady, setIsPersistenceReady] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: "error" | "success";
     message: string;
@@ -912,6 +926,20 @@ export function ProcessModuleConsole({
   );
 
   useEffect(() => {
+    const persisted = readModuleUiState<ProcessUiState>("procesos");
+
+    if (persisted) {
+      setSelectedCampaignId(persisted.selectedCampaignId);
+      setFilters((currentValue) => ({
+        ...currentValue,
+        ...persisted.filters,
+      }));
+    }
+
+    setIsPersistenceReady(true);
+  }, []);
+
+  useEffect(() => {
     setSelectedCampaignId((currentValue) => {
       if (currentValue === null) {
         return defaultCampaignId ?? "all";
@@ -926,6 +954,17 @@ export function ProcessModuleConsole({
         : (defaultCampaignId ?? "all");
     });
   }, [campaigns, defaultCampaignId]);
+
+  useEffect(() => {
+    if (!isPersistenceReady) {
+      return;
+    }
+
+    writeModuleUiState<ProcessUiState>("procesos", {
+      filters,
+      selectedCampaignId,
+    });
+  }, [filters, isPersistenceReady, selectedCampaignId]);
 
   useEffect(() => {
     fetchWithFirebaseAuth("/api/cargas")
@@ -946,9 +985,11 @@ export function ProcessModuleConsole({
           setCargaRecords(
             payload.registros.map((record) => ({
               ...record,
-              fechaOperacion: record.fechaOperacion
-                ? new Date(record.fechaOperacion)
-                : null,
+              fechaOperacion: record.fechaKey
+                ? fechaIsoLocalToDate(record.fechaKey)
+                : record.fechaOperacion
+                  ? new Date(record.fechaOperacion)
+                  : null,
               createdAt: record.createdAt ? new Date(record.createdAt) : null,
             })),
           );

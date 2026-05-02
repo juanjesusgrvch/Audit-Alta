@@ -17,6 +17,7 @@ import {
   compactarEspacios,
   construirClavesFecha,
   crearIdDescargaLegacy,
+  dateToFechaIsoLocal,
   fechaIsoLocalToDate,
   normalizarTextoOperativo,
   normalizarTextoParaIndice,
@@ -98,6 +99,7 @@ export type RegistroOperacion = Pick<
   | "observaciones"
 > & {
   id: string;
+  fechaKey: string;
   proveedor: string;
   proceso: string;
   procedencia: string;
@@ -186,7 +188,7 @@ function getStorageConfigured() {
 }
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return dateToFechaIsoLocal(new Date());
 }
 
 function formatFechaRegistro(value: Date | null) {
@@ -400,6 +402,7 @@ function parseLegacyDescargaSnapshot(
   return {
     id,
     tipoOperacion: "ingreso",
+    fechaKey: typeof parsed.data.entryDate === "string" ? parsed.data.entryDate : "",
     numeroCartaPorte,
     cliente: parsed.data.client,
     destinatario: "",
@@ -444,6 +447,7 @@ function parseOperacionSnapshot(
     return {
       id,
       tipoOperacion: parsed.data.tipoOperacion,
+      fechaKey: parsed.data.fechaKey,
       numeroCartaPorte: parsed.data.numeroCartaPorte,
       cliente: parsed.data.cliente,
       destinatario: parsed.data.destinatario ?? "",
@@ -1140,6 +1144,7 @@ async function getStoredLotsAvailabilityForEgresos(
     return [
       {
         id: documento.id,
+        fechaKey: parsed.data.fechaKey,
         fechaProceso: timestampLikeToDate(parsed.data.fechaProceso),
         cliente: parsed.data.cliente,
         proceso: parsed.data.proceso || parsed.data.numeroProceso || "",
@@ -1351,7 +1356,7 @@ async function crearOperacionTransaccional(
     : null;
   const fechaKeys = construirClavesFecha(input.fechaOperacion);
   const timestampOperacion = Timestamp.fromDate(
-    new Date(`${input.fechaOperacion}T00:00:00.000Z`)
+    fechaIsoLocalToDate(input.fechaOperacion)
   );
   const now = Timestamp.now();
   const nowMs = now.toMillis();
@@ -2566,7 +2571,7 @@ export async function actualizarOperacionEgreso(
   const now = Timestamp.now();
   const fechaKeys = construirClavesFecha(input.fechaOperacion);
   const timestampOperacion = Timestamp.fromDate(
-    new Date(`${input.fechaOperacion}T00:00:00.000Z`)
+    fechaIsoLocalToDate(input.fechaOperacion)
   );
   const cliente = compactarEspacios(input.cliente);
   const proveedor = compactarEspacios(input.proveedor || input.procedencia);

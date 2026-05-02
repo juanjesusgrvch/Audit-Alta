@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchWithFirebaseAuth } from "@/lib/client/auth-fetch";
 import type { EnvasesLedgerHistoryRecord } from "@/lib/services/envases-module";
+import { fechaIsoLocalToDate } from "@/lib/utils";
 import type {
   EnvaseOption,
   RegistroOperacion
@@ -123,6 +124,18 @@ function toDate(value: string | null) {
   return value ? new Date(value) : null;
 }
 
+function toCalendarDate(value: string | null, fechaKey?: string | null) {
+  if (fechaKey) {
+    try {
+      return fechaIsoLocalToDate(fechaKey);
+    } catch {
+      return toDate(value);
+    }
+  }
+
+  return toDate(value);
+}
+
 function parseEnvase(envase: SerializedEnvaseOption): EnvaseOption {
   return {
     ...envase,
@@ -135,7 +148,7 @@ function parseRegistro(
 ): RegistroOperacion {
   return {
     ...registro,
-    fechaOperacion: toDate(registro.fechaOperacion),
+    fechaOperacion: toCalendarDate(registro.fechaOperacion, registro.fechaKey),
     createdAt: toDate(registro.createdAt)
   };
 }
@@ -145,7 +158,7 @@ function parseProceso(
 ): RegistroProceso {
   return {
     ...registro,
-    fechaProceso: toDate(registro.fechaProceso),
+    fechaProceso: toCalendarDate(registro.fechaProceso, registro.fechaKey),
     createdAt: toDate(registro.createdAt)
   };
 }
@@ -155,7 +168,7 @@ function parseEnvaseHistory(
 ): EnvasesLedgerHistoryRecord {
   return {
     ...registro,
-    fechaMovimiento: toDate(registro.fechaMovimiento),
+    fechaMovimiento: toCalendarDate(registro.fechaMovimiento, registro.fechaKey),
     createdAt: toDate(registro.createdAt)
   };
 }

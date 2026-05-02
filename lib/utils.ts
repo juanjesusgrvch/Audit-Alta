@@ -51,6 +51,13 @@ export function fechaIsoLocalToDate(value: string): Date {
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
+export function dateToFechaIsoLocal(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function construirClavesFecha(fechaOperacion: string) {
   if (!esFechaIsoLocal(fechaOperacion)) {
     throw new Error("La fecha de operacion no tiene un formato valido.");
@@ -125,6 +132,22 @@ export function construirEnvaseInventoryId(
     sanearSegmentoArchivo(normalizarTextoParaIndice(envaseEstado), "estado"),
     sanearSegmentoArchivo(normalizarKilosParaId(kilos), "0")
   ].join("__");
+}
+
+export function construirEnvaseInventoryIdCanonico(params: {
+  envaseTipoId?: string | null;
+  envaseTipoCodigo?: string | null;
+  envaseTipoNombre?: string | null;
+  envaseEstado: string;
+  kilos?: number;
+}): string {
+  const canonicalLabel =
+    compactarEspacios(params.envaseTipoNombre ?? "") ||
+    compactarEspacios(params.envaseTipoCodigo ?? "") ||
+    compactarEspacios(params.envaseTipoId ?? "") ||
+    "envase";
+
+  return construirEnvaseInventoryId(canonicalLabel, params.envaseEstado, params.kilos);
 }
 
 export function construirEnvaseTipoIdManual(value: string): string {

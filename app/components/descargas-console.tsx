@@ -23,6 +23,10 @@ import {
   resolveCampaignPeriod,
   useCampaignPeriods,
 } from "@/lib/client/campaign-periods";
+import {
+  readModuleUiState,
+  writeModuleUiState,
+} from "@/lib/client/module-ui-state";
 import { syncRelationalAutoFilledFields } from "@/lib/client/relational-autofill";
 import { refreshAllModuleData } from "@/lib/client/module-data";
 import type {
@@ -61,6 +65,11 @@ type DescargasFilters = {
   proceso: string;
   producto: string;
   proveedor: string;
+};
+
+type DescargasUiState = {
+  filters: DescargasFilters;
+  selectedCampaignId: string | null;
 };
 
 type SegmentMode = "proceso" | "cliente" | "producto";
@@ -1551,6 +1560,7 @@ export function DescargasConsole({
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     null,
   );
+  const [isPersistenceReady, setIsPersistenceReady] = useState(false);
   const [actionPendingId, setActionPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -1577,6 +1587,21 @@ export function DescargasConsole({
     () => resolveCampaignPeriod(campaigns, resolvedSelectedCampaignId),
     [campaigns, resolvedSelectedCampaignId],
   );
+
+  useEffect(() => {
+    const persisted = readModuleUiState<DescargasUiState>("descargas");
+
+    if (persisted) {
+      setSelectedCampaignId(persisted.selectedCampaignId);
+      setFilters((currentValue) => ({
+        ...currentValue,
+        ...persisted.filters,
+      }));
+    }
+
+    setIsPersistenceReady(true);
+  }, []);
+
   useEffect(() => {
     setSelectedCampaignId((currentValue) => {
       if (currentValue === null) {
@@ -1592,6 +1617,18 @@ export function DescargasConsole({
         : (defaultCampaignId ?? "all");
     });
   }, [campaigns, defaultCampaignId]);
+
+  useEffect(() => {
+    if (!isPersistenceReady) {
+      return;
+    }
+
+    writeModuleUiState<DescargasUiState>("descargas", {
+      filters,
+      selectedCampaignId,
+    });
+  }, [filters, isPersistenceReady, selectedCampaignId]);
+
   const scopedFilters = useMemo(() => {
     const mergedRange = mergeCampaignDateRange(
       selectedCampaign,

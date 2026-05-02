@@ -3,7 +3,7 @@ import "server-only";
 import { getOptionalPublicFirebaseConfig } from "@/lib/firebase/public-config";
 import { getFirebaseSystemConfig } from "@/lib/firebase/system-config";
 import { getModuloOperacionData, getEnvasesOperativos } from "@/lib/services/operaciones";
-import { crearResumenDiarioVacio } from "@/lib/utils";
+import { crearResumenDiarioVacio, dateToFechaIsoLocal } from "@/lib/utils";
 import type { DashboardResumenDiario } from "@/types/schema";
 
 type DashboardOverview = {
@@ -20,7 +20,7 @@ type DashboardOverview = {
 };
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
-  const fechaActual = new Date().toISOString().slice(0, 10);
+  const fechaActual = dateToFechaIsoLocal(new Date());
   const emptyResumen = crearResumenDiarioVacio(fechaActual);
   const publicFirebaseConfig = getOptionalPublicFirebaseConfig();
   const systemConfig = getFirebaseSystemConfig();

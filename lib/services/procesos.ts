@@ -10,6 +10,7 @@ import { getPlantStockAvailabilityMap } from "@/lib/services/envases-ledger";
 import {
   compactarEspacios,
   construirClavesFecha,
+  fechaIsoLocalToDate,
   normalizarTextoParaIndice,
   timestampLikeToDate,
 } from "@/lib/utils";
@@ -79,6 +80,7 @@ export type RegistroProceso = Pick<
   | "observaciones"
 > & {
   id: string;
+  fechaKey: string;
   fechaProceso: Date | null;
   createdAt: Date | null;
 };
@@ -499,6 +501,7 @@ function parseProcesoSnapshot(
 
   return {
     id,
+    fechaKey: parsed.data.fechaKey,
     numeroProceso:
       compactarEspacios(parsed.data.numeroProceso || procesoValue) || procesoValue,
     proceso: procesoValue,
@@ -550,9 +553,7 @@ function buildProcessPayload(params: {
 }) {
   const { input, actorId, now, previousData, salidas } = params;
   const fechaKeys = construirClavesFecha(input.fechaProceso);
-  const fechaProceso = Timestamp.fromDate(
-    new Date(`${input.fechaProceso}T00:00:00.000Z`),
-  );
+  const fechaProceso = Timestamp.fromDate(fechaIsoLocalToDate(input.fechaProceso));
   const cliente = compactarEspacios(input.cliente);
   const proceso = compactarEspacios(input.proceso);
   const procedencia = compactarEspacios(input.procedencia ?? "");

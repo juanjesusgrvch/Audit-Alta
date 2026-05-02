@@ -3,6 +3,7 @@ import "server-only";
 import { getAdminDb } from "@/lib/firebase/admin";
 import {
   compactarEspacios,
+  construirEnvaseInventoryIdCanonico,
   construirEnvaseInventoryId,
   normalizarTextoParaIndice,
   timestampLikeToDate,
@@ -32,6 +33,7 @@ export type DerivedEnvaseMovement = {
   id: string;
   sourceId: string;
   sourceSubId: string | null;
+  fechaKey: string | null;
   movementKind: LedgerMovementKind;
   recordOrigin: "descarga" | "carga" | "proceso" | "manual";
   manualOrigin: "manual_ingreso" | "manual_baja" | "manual_retiro" | null;
@@ -102,10 +104,28 @@ function buildVisibleId(nombre: string, estado: string, kilos: number) {
   return `${nombre} | ${estado} | ${kilos} kg`;
 }
 
+function sanitizeDescargaReferenceLabel(
+  rawValue: string | null | undefined,
+  sourceId: string,
+) {
+  const reference = compactarEspacios(rawValue ?? "");
+
+  if (
+    !reference ||
+    reference.startsWith("MANUAL-") ||
+    reference === compactarEspacios(sourceId)
+  ) {
+    return null;
+  }
+
+  return reference;
+}
+
 function buildMovementBase(params: {
   id: string;
   sourceId: string;
   sourceSubId?: string | null;
+  fechaKey?: string | null;
   movementKind: LedgerMovementKind;
   cliente: string;
   envaseTipoId: string;
@@ -129,16 +149,19 @@ function buildMovementBase(params: {
   consumptionDeltaOverride?: number;
   deltaClientBalanceOverride?: number;
 }) {
-  const inventoryId = construirEnvaseInventoryId(
-    params.envaseTipoId,
-    params.envaseEstado,
-    params.kilos,
-  );
+  const inventoryId = construirEnvaseInventoryIdCanonico({
+    envaseTipoId: params.envaseTipoId,
+    envaseTipoCodigo: params.envaseTipoCodigo,
+    envaseTipoNombre: params.envaseTipoNombre,
+    envaseEstado: params.envaseEstado,
+    kilos: params.kilos,
+  });
   const isIngreso = params.movementKind === "ingreso";
   const isBajaLike =
     params.movementKind === "baja" || params.movementKind === "retiro";
   const isReprocess = params.movementKind === "reproceso";
   const {
+    fechaKey,
     manualOrigin,
     sourceSubId,
     countsTowardAccount,
@@ -150,6 +173,7 @@ function buildMovementBase(params: {
 
   return {
     ...movement,
+    fechaKey: fechaKey ?? null,
     manualOrigin: manualOrigin ?? null,
     sourceSubId: sourceSubId ?? null,
     countsTowardAccount: countsTowardAccount ?? true,
@@ -244,6 +268,7 @@ function mapDescargaDocument(
         buildMovementBase({
           id: `descarga-${id}-${index + 1}`,
           sourceId: id,
+          fechaKey: parsed.data.fechaKey,
           movementKind: "ingreso",
           cliente: parsed.data.cliente,
           envaseTipoId: item.envaseTipoId,
@@ -251,17 +276,20 @@ function mapDescargaDocument(
           envaseTipoNombre: item.envaseTipoNombre,
           envaseEstado: item.envaseEstado,
           kilos: item.kilos,
-      cantidad: item.cantidad,
-      fechaMovimiento: timestampLikeToDate(parsed.data.fechaOperacion),
-      createdAt: timestampLikeToDate(parsed.data.createdAt),
-      recordOrigin: "descarga",
-      manualOrigin: null,
-      producto: parsed.data.producto ?? null,
+          cantidad: item.cantidad,
+          fechaMovimiento: timestampLikeToDate(parsed.data.fechaOperacion),
+          createdAt: timestampLikeToDate(parsed.data.createdAt),
+          recordOrigin: "descarga",
+          manualOrigin: null,
+          producto: parsed.data.producto ?? null,
           proceso: parsed.data.proceso ?? null,
           procedencia: parsed.data.procedencia || parsed.data.proveedor || null,
           observaciones: parsed.data.observaciones ?? null,
           registroLabel: "Descarga",
-          referenciaLabel: compactarEspacios(parsed.data.numeroCartaPorte ?? "") || null,
+          referenciaLabel: sanitizeDescargaReferenceLabel(
+            parsed.data.numeroCartaPorte ?? "",
+            id,
+          ),
         }),
       );
   }
@@ -277,6 +305,7 @@ function mapDescargaDocument(
       buildMovementBase({
         id: `descarga-${id}-${movement.idSuffix}`,
         sourceId: id,
+        fechaKey: null,
         movementKind: "ingreso",
         cliente: legacyParsed.data.client,
         envaseTipoId: "legacy-packaging",
@@ -294,12 +323,10 @@ function mapDescargaDocument(
         procedencia: legacyParsed.data.supplier,
         observaciones: legacyParsed.data.observations ?? null,
         registroLabel: "Descarga",
-        referenciaLabel:
-          compactarEspacios(
-            typeof data.numeroCartaPorte === "string" ? data.numeroCartaPorte : "",
-          ) ||
-          compactarEspacios(legacyParsed.data.id ?? "") ||
-          null,
+        referenciaLabel: sanitizeDescargaReferenceLabel(
+          typeof data.numeroCartaPorte === "string" ? data.numeroCartaPorte : "",
+          id,
+        ),
       }),
   );
 }
@@ -330,6 +357,7 @@ function mapCargaDocument(
         buildMovementBase({
           id: `carga-granel-${id}-${index + 1}`,
           sourceId: id,
+          fechaKey: parsed.data.fechaKey,
           movementKind: "reproceso",
           cliente: parsed.data.cliente,
           envaseTipoId: item.envaseTipoId,
@@ -364,6 +392,7 @@ function mapCargaDocument(
       buildMovementBase({
         id: `carga-${id}-${index + 1}`,
         sourceId: id,
+        fechaKey: parsed.data.fechaKey,
         movementKind: "consumo_egreso_manual",
         cliente: parsed.data.cliente,
         envaseTipoId: item.envaseTipoId,
@@ -459,6 +488,7 @@ function mapProcesoDocument(
       id: `proceso-${id}-${salida.id || index + 1}`,
       sourceId: id,
       sourceSubId: salidaId,
+      fechaKey: parsed.data.fechaKey,
       movementKind: "consumo_proceso",
       cliente: parsed.data.cliente,
       envaseTipoId: salida.envaseTipoId,
@@ -526,6 +556,7 @@ function mapManualMovimientoDocument(
     buildMovementBase({
       id,
       sourceId: parsed.data.sourceId || id,
+      fechaKey: parsed.data.fechaKey,
       movementKind,
       cliente: parsed.data.cliente,
       envaseTipoId: parsed.data.envaseTipoId,
@@ -543,6 +574,7 @@ function mapManualMovimientoDocument(
           : parsed.data.origen === "manual_baja"
             ? "manual_baja"
             : "manual_ingreso",
+      procedencia: parsed.data.transporte ?? null,
       observaciones: parsed.data.observaciones ?? null,
       causa: parsed.data.causa ?? null,
       registroLabel:

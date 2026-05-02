@@ -25,6 +25,10 @@ import {
   resolveCampaignPeriod,
   useCampaignPeriods,
 } from "@/lib/client/campaign-periods";
+import {
+  readModuleUiState,
+  writeModuleUiState,
+} from "@/lib/client/module-ui-state";
 import { syncRelationalAutoFilledFields } from "@/lib/client/relational-autofill";
 import { refreshAllModuleData } from "@/lib/client/module-data";
 import {
@@ -35,6 +39,7 @@ import {
   compactarEspacios,
   construirEnvaseInventoryId,
   construirEnvaseTipoIdManual,
+  fechaIsoLocalToDate,
 } from "@/lib/utils";
 import type {
   EnvaseOption,
@@ -70,6 +75,11 @@ type CargasFilters = {
   producto: string;
   proveedor: string;
   envase: string;
+};
+
+type CargasUiState = {
+  filters: CargasFilters;
+  selectedCampaignId: string | null;
 };
 
 type SegmentMode = "proceso" | "cliente" | "producto";
@@ -1687,6 +1697,7 @@ export function CargasConsole({
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     null,
   );
+  const [isPersistenceReady, setIsPersistenceReady] = useState(false);
   const [actionPendingId, setActionPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -1714,6 +1725,21 @@ export function CargasConsole({
     () => resolveCampaignPeriod(campaigns, resolvedSelectedCampaignId),
     [campaigns, resolvedSelectedCampaignId],
   );
+
+  useEffect(() => {
+    const persisted = readModuleUiState<CargasUiState>("cargas");
+
+    if (persisted) {
+      setSelectedCampaignId(persisted.selectedCampaignId);
+      setFilters((currentValue) => ({
+        ...currentValue,
+        ...persisted.filters,
+      }));
+    }
+
+    setIsPersistenceReady(true);
+  }, []);
+
   useEffect(() => {
     setSelectedCampaignId((currentValue) => {
       if (currentValue === null) {
@@ -1729,6 +1755,18 @@ export function CargasConsole({
         : (defaultCampaignId ?? "all");
     });
   }, [campaigns, defaultCampaignId]);
+
+  useEffect(() => {
+    if (!isPersistenceReady) {
+      return;
+    }
+
+    writeModuleUiState<CargasUiState>("cargas", {
+      filters,
+      selectedCampaignId,
+    });
+  }, [filters, isPersistenceReady, selectedCampaignId]);
+
   const scopedFilters = useMemo(() => {
     const mergedRange = mergeCampaignDateRange(
       selectedCampaign,
@@ -2928,9 +2966,11 @@ function CargaModal({
           setProcessRecords(
             data.registros.map((record) => ({
               ...record,
-              fechaProceso: record.fechaProceso
-                ? new Date(record.fechaProceso)
-                : null,
+              fechaProceso: record.fechaKey
+                ? fechaIsoLocalToDate(record.fechaKey)
+                : record.fechaProceso
+                  ? new Date(record.fechaProceso)
+                  : null,
               createdAt: record.createdAt ? new Date(record.createdAt) : null,
             })),
           );

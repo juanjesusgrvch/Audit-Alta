@@ -14,8 +14,10 @@ import {
   compactarEspacios,
   construirClavesFecha,
   construirEnvaseInventoryId,
+  construirEnvaseInventoryIdCanonico,
   construirEnvaseTipoCodigoManual,
   construirEnvaseTipoIdManual,
+  fechaIsoLocalToDate,
   normalizarTextoParaIndice,
   timestampLikeToDate
 } from "@/lib/utils";
@@ -170,7 +172,13 @@ function parseManualEnvaseHistory(
     envaseEstado: parsed.data.envaseEstado,
     kilos: parsed.data.kilos,
     cantidad: parsed.data.cantidad,
-    inventoryId: parsed.data.inventoryId,
+    inventoryId: construirEnvaseInventoryIdCanonico({
+      envaseTipoId: parsed.data.envaseTipoId,
+      envaseTipoCodigo: parsed.data.envaseTipoCodigo,
+      envaseTipoNombre: parsed.data.envaseTipoNombre,
+      envaseEstado: parsed.data.envaseEstado,
+      kilos: parsed.data.kilos,
+    }),
     transporte: parsed.data.transporte,
     causa: parsed.data.causa,
     tipoProceso: parsed.data.tipoProceso,
@@ -808,7 +816,7 @@ async function upsertIngresoManualMovement(
   } = params;
   const fechaKeys = construirClavesFecha(input.fechaMovimiento);
   const fechaMovimiento = Timestamp.fromDate(
-    new Date(`${input.fechaMovimiento}T00:00:00.000Z`)
+    fechaIsoLocalToDate(input.fechaMovimiento)
   );
   const cliente = compactarEspacios(input.cliente);
   const envaseEstado = compactarEspacios(input.envaseEstado);
@@ -820,11 +828,6 @@ async function upsertIngresoManualMovement(
   const envaseTipoId =
     compactarEspacios(input.envaseTipoId) ||
     construirEnvaseTipoIdManual(envaseTipoNombre);
-  const inventoryId = construirEnvaseInventoryId(
-    envaseTipoId,
-    envaseEstado,
-    input.kilos
-  );
   const { envaseRef, envaseResult } = await resolveEnvaseResultForMovement(
     transaction,
     db,
@@ -834,6 +837,13 @@ async function upsertIngresoManualMovement(
       envaseTipoCodigo: construirEnvaseTipoCodigoManual(envaseTipoNombre)
     }
   );
+  const inventoryId = construirEnvaseInventoryIdCanonico({
+    envaseTipoId: envaseTipoId || envaseResult.envase.id,
+    envaseTipoCodigo: envaseResult.envase.codigo,
+    envaseTipoNombre: envaseResult.envase.nombre,
+    envaseEstado,
+    kilos: input.kilos,
+  });
   const hiddenLoteRef = db
     .collection(COLLECTIONS.envaseLotesOcultos)
     .doc(buildHiddenLoteId(inventoryId, cliente));
@@ -910,7 +920,7 @@ async function upsertBajaManualMovement(
   } = params;
   const fechaKeys = construirClavesFecha(input.fechaMovimiento);
   const fechaMovimiento = Timestamp.fromDate(
-    new Date(`${input.fechaMovimiento}T00:00:00.000Z`)
+    fechaIsoLocalToDate(input.fechaMovimiento)
   );
   const cliente = compactarEspacios(input.cliente);
   const causa = compactarEspacios(input.causa);

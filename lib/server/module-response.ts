@@ -1,5 +1,6 @@
 import "server-only";
 
+import { fechaIsoLocalToDate } from "@/lib/utils";
 import type {
   EnvasesDashboardData,
   EnvasesLedgerHistoryRecord
@@ -18,6 +19,18 @@ function serializeDate(value: Date | null) {
   return value ? value.toISOString() : null;
 }
 
+function serializeCalendarDate(value: Date | null, fechaKey?: string | null) {
+  if (fechaKey) {
+    try {
+      return fechaIsoLocalToDate(fechaKey).toISOString();
+    } catch {
+      return serializeDate(value);
+    }
+  }
+
+  return serializeDate(value);
+}
+
 function serializeEnvase(envase: EnvaseOption) {
   return {
     ...envase,
@@ -28,7 +41,10 @@ function serializeEnvase(envase: EnvaseOption) {
 function serializeRegistro(registro: RegistroOperacion) {
   return {
     ...registro,
-    fechaOperacion: serializeDate(registro.fechaOperacion),
+    fechaOperacion: serializeCalendarDate(
+      registro.fechaOperacion,
+      registro.fechaKey,
+    ),
     createdAt: serializeDate(registro.createdAt)
   };
 }
@@ -36,7 +52,7 @@ function serializeRegistro(registro: RegistroOperacion) {
 function serializeProceso(registro: RegistroProceso) {
   return {
     ...registro,
-    fechaProceso: serializeDate(registro.fechaProceso),
+    fechaProceso: serializeCalendarDate(registro.fechaProceso, registro.fechaKey),
     createdAt: serializeDate(registro.createdAt)
   };
 }
@@ -44,7 +60,10 @@ function serializeProceso(registro: RegistroProceso) {
 function serializeEnvaseHistory(registro: EnvasesLedgerHistoryRecord) {
   return {
     ...registro,
-    fechaMovimiento: serializeDate(registro.fechaMovimiento),
+    fechaMovimiento: serializeCalendarDate(
+      registro.fechaMovimiento,
+      registro.fechaKey,
+    ),
     createdAt: serializeDate(registro.createdAt)
   };
 }

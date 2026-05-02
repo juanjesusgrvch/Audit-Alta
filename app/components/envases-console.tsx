@@ -24,6 +24,10 @@ import {
   resolveCampaignPeriod,
   useCampaignPeriods,
 } from "@/lib/client/campaign-periods";
+import {
+  readModuleUiState,
+  writeModuleUiState,
+} from "@/lib/client/module-ui-state";
 import { refreshAllModuleData } from "@/lib/client/module-data";
 import type { EnvasesLedgerHistoryRecord } from "@/lib/services/envases-module";
 import type { EnvaseOption } from "@/lib/services/operaciones";
@@ -71,6 +75,15 @@ type FilterState = {
   historyKg: string;
   movementType: string;
   to: string;
+};
+
+type EnvasesUiState = {
+  activeAccountTab: AccountTab;
+  filters: FilterState;
+  search: string;
+  selectedCampaignId: string | null;
+  selectedClient: string;
+  showAllClientsHistory: boolean;
 };
 
 type AccountTab = "ingresos" | "consumos" | "bajas";
@@ -200,17 +213,35 @@ function getAccountDetailReference(
     };
   }
 
-  if (movement.recordOrigin === "descarga" && movement.referenciaLabel) {
+  if (movement.recordOrigin === "descarga") {
     return {
       label: "Carta de porte",
-      value: movement.referenciaLabel,
+      value: compactarEspacios(movement.referenciaLabel ?? "") || "-",
     };
   }
 
   return {
-    label: "Registro",
-    value: movement.referenciaLabel || "Ingreso manual",
+    label: "Movimiento",
+    value: movement.registroLabel || movementTypeLabel(movement),
   };
+}
+
+function isManualIngresoMovement(movement: EnvasesLedgerHistoryRecord) {
+  return movement.recordOrigin === "manual" && movement.movementKind === "ingreso";
+}
+
+function getMovementProcedenciaLabel(movement: EnvasesLedgerHistoryRecord) {
+  return isManualIngresoMovement(movement)
+    ? "Transporte / procedencia"
+    : "Procedencia";
+}
+
+function shouldShowCartaPorteDetail(movement: EnvasesLedgerHistoryRecord) {
+  return movement.recordOrigin === "descarga" && movement.movementKind === "ingreso";
+}
+
+function getCartaPorteDetailValue(movement: EnvasesLedgerHistoryRecord) {
+  return compactarEspacios(movement.referenciaLabel ?? "") || "-";
 }
 
 function matchesDateRange(dateKey: string, from: string, to: string) {
@@ -844,22 +875,20 @@ function HistoryRow({
             {movement.procedencia ? (
               <div className="rounded-xl bg-[var(--surface-low)] px-4 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  Procedencia
+                  {getMovementProcedenciaLabel(movement)}
                 </p>
                 <p className="mt-2 font-semibold text-[var(--text)]">
                   {movement.procedencia}
                 </p>
               </div>
             ) : null}
-            {movement.referenciaLabel ? (
+            {shouldShowCartaPorteDetail(movement) ? (
               <div className="rounded-xl bg-[var(--surface-low)] px-4 py-3 text-sm text-[var(--text-soft)] ring-1 ring-[var(--line)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  {movement.movementKind === "ingreso"
-                    ? "Carta de porte"
-                    : "Referencia"}
+                  Carta de porte
                 </p>
                 <p className="mt-2 font-semibold text-[var(--text)]">
-                  {movement.referenciaLabel}
+                  {getCartaPorteDetailValue(movement)}
                 </p>
               </div>
             ) : null}
@@ -1004,6 +1033,13 @@ function AccountMovementDetailModal({
             {records.length > 0 ? (
               records.map((record) => {
                 const reference = getAccountDetailReference(record, tab);
+                const showProcedencia = Boolean(
+                  compactarEspacios(record.procedencia ?? ""),
+                );
+                const showCartaPorte = shouldShowCartaPorteDetail(record);
+                const showObservaciones = Boolean(
+                  compactarEspacios(record.observaciones ?? ""),
+                );
 
                 return (
                   <div
@@ -1025,6 +1061,85 @@ function AccountMovementDetailModal({
                       <p className="font-display text-lg font-bold text-[var(--primary)] md:text-right">
                         {formatQuantity(record.cantidad)}
                       </p>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                          Cliente
+                        </p>
+                        <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                          {record.cliente}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                          ID de envase
+                        </p>
+                        <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                          {record.visibleId}
+                        </p>
+                      </div>
+                      {record.producto ? (
+                        <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                            Producto
+                          </p>
+                          <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                            {record.producto}
+                          </p>
+                        </div>
+                      ) : null}
+                      {record.proceso ? (
+                        <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                            Proceso
+                          </p>
+                          <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                            {record.proceso}
+                          </p>
+                        </div>
+                      ) : null}
+                      {showProcedencia ? (
+                        <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                            {getMovementProcedenciaLabel(record)}
+                          </p>
+                          <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                            {record.procedencia}
+                          </p>
+                        </div>
+                      ) : null}
+                      {showCartaPorte ? (
+                        <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                            Carta de porte
+                          </p>
+                          <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                            {getCartaPorteDetailValue(record)}
+                          </p>
+                        </div>
+                      ) : null}
+                      {record.causa ? (
+                        <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)]">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                            Causa
+                          </p>
+                          <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                            {record.causa}
+                          </p>
+                        </div>
+                      ) : null}
+                      {showObservaciones ? (
+                        <div className="rounded-xl bg-white/70 px-3 py-3 text-sm text-[var(--modal-muted)] ring-1 ring-[var(--modal-line)] sm:col-span-2">
+                          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--modal-muted)]">
+                            Observaciones
+                          </p>
+                          <p className="mt-2 font-semibold text-[var(--modal-ink)]">
+                            {record.observaciones}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -1618,6 +1733,7 @@ export function EnvasesConsole({
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(
     null,
   );
+  const [isPersistenceReady, setIsPersistenceReady] = useState(false);
   const [activeAccountTab, setActiveAccountTab] =
     useState<AccountTab>("ingresos");
   const [filters, setFilters] = useState<FilterState>({
@@ -1697,6 +1813,24 @@ export function EnvasesConsole({
   );
 
   useEffect(() => {
+    const persisted = readModuleUiState<EnvasesUiState>("envases");
+
+    if (persisted) {
+      setSearch(persisted.search);
+      setSelectedClient(persisted.selectedClient);
+      setSelectedCampaignId(persisted.selectedCampaignId);
+      setActiveAccountTab(persisted.activeAccountTab);
+      setShowAllClientsHistory(persisted.showAllClientsHistory);
+      setFilters((currentValue) => ({
+        ...currentValue,
+        ...persisted.filters,
+      }));
+    }
+
+    setIsPersistenceReady(true);
+  }, []);
+
+  useEffect(() => {
     setSelectedCampaignId((currentValue) => {
       if (currentValue === null) {
         return defaultCampaignId ?? "all";
@@ -1721,6 +1855,29 @@ export function EnvasesConsole({
       return availableClients[0] ?? "";
     });
   }, [availableClients]);
+
+  useEffect(() => {
+    if (!isPersistenceReady) {
+      return;
+    }
+
+    writeModuleUiState<EnvasesUiState>("envases", {
+      activeAccountTab,
+      filters,
+      search,
+      selectedCampaignId,
+      selectedClient,
+      showAllClientsHistory,
+    });
+  }, [
+    activeAccountTab,
+    filters,
+    isPersistenceReady,
+    search,
+    selectedCampaignId,
+    selectedClient,
+    showAllClientsHistory,
+  ]);
 
   const scopedFilters = useMemo(() => {
     const mergedRange = mergeCampaignDateRange(
